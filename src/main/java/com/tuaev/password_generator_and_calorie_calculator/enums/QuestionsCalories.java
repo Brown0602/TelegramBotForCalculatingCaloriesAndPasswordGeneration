@@ -4,7 +4,7 @@ public enum QuestionsCalories {
     WEIGHT("Какой у вас вес?"),
     HEIGHT("Какой ваш рост?"),
     AGE("Сколько вам лет?"),
-    FLOOR("Вы мужчина или женщина?"),
+    SEX("Вы мужчина или женщина?"),
     ACTIVITY("Выберите примерный уровень вашей физической активности:");
 
     private final String text;
