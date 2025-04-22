@@ -1,4 +1,4 @@
-package com.tuaev.password_generator_and_calorie_calculator;
+package com.tuaev.password_generator_and_calorie_calculator.config_app;
 
 import com.tuaev.password_generator_and_calorie_calculator.bot.PasswordGeneratorAndCalorieCalculatorBot;
 import org.springframework.context.annotation.Bean;
