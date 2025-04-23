@@ -163,32 +163,11 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
 
     public int checkValidDataHeight(int iterator, String userId, String text) {
         try {
-            int min = 1;
-            int max = 250;
-            int height;
-            if (text.length() > 3) {
-                throw new NotValidDataException("Длина значения роста не должна превышать 3-х символов");
-            } else {
-                height = Integer.parseInt(text);
-            }
-            boolean isValidHeight = height >= min && height <= max;
-            if (isValidHeight) {
+            if (text.length() <= 3 && text.matches("\\d+") && Integer.parseInt(text) > 0 && Integer.parseInt(text) < 250) {
                 addResponseOnQuestion(userId, text, iterator);
             } else {
-                String response = """
-                        Рост не может быть меньше 1 или больше 250
-                        """;
-                sendMessage(response, userId);
-                iterator--;
-                iteratorUserById.replace(userId, iterator);
+                throw new NotValidDataException("Рост должен быть больше 0 и меньше 250, а так же содержать только целые числа");
             }
-        } catch (NumberFormatException e) {
-            String response = """
-                    Значение роста должно быть целым числом
-                    """;
-            sendMessage(response, userId);
-            iterator--;
-            iteratorUserById.replace(userId, iterator);
         } catch (NotValidDataException e) {
             sendMessage(e.getMessage(), userId);
             iterator--;
