@@ -98,13 +98,14 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
     public int checkValidDataActivity(int iterator, String userId, String text) {
         boolean isValidDataActivity = Arrays.stream(activities).anyMatch(activity ->
                 activity.getText().equals(text));
-        if (isValidDataActivity) {
-            addResponseOnQuestion(userId, text, iterator);
-        } else {
-            String response = """
-                    Выберите ответ из предложенных
-                    """;
-            sendKeyboardActivities(response, userId, getKeyboardActivity());
+        try {
+            if (isValidDataActivity) {
+                addResponseOnQuestion(userId, text, iterator);
+            } else {
+                throw new NotValidDataException("Нет такого варианта ответа\nВыберите ответ из предложенных");
+            }
+        } catch (NotValidDataException e) {
+            sendKeyboardActivities(e.getMessage(), userId, getKeyboardActivity());
             iterator--;
             iteratorUserById.replace(userId, iterator);
         }
