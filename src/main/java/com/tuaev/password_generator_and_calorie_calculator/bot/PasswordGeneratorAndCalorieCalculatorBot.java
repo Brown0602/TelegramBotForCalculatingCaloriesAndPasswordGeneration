@@ -127,32 +127,11 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
 
     public int checkValidDataAge(int iterator, String userId, String text) {
         try {
-            int min = 1;
-            int max = 100;
-            int age;
-            if (text.length() > 3) {
-                throw new NotValidDataException("Длина значения возраста не должна превышать 3-х символов");
-            } else {
-                age = Integer.parseInt(text);
-            }
-            boolean isValidAge = age >= min && age <= max;
-            if (isValidAge) {
+            if (text.length() <= 3 && text.matches("\\d+") && Integer.parseInt(text) > 0 && Integer.parseInt(text) < 100) {
                 addResponseOnQuestion(userId, text, iterator);
             } else {
-                String response = """
-                        Возраст не может быть меньше 1 или больше 100
-                        """;
-                sendMessage(response, userId);
-                iterator--;
-                iteratorUserById.replace(userId, iterator);
+                throw new NotValidDataException("Возраст должен быть больше 0 и меньше 100, а так же содержать только целые числа");
             }
-        } catch (NumberFormatException e) {
-            String response = """
-                    Значение возраста должно быть целым числом
-                    """;
-            sendMessage(response, userId);
-            iterator--;
-            iteratorUserById.replace(userId, iterator);
         } catch (NotValidDataException e) {
             sendMessage(e.getMessage(), userId);
             iterator--;
