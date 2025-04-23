@@ -37,6 +37,7 @@ class PasswordGeneratorAndCalorieCalculatorBotTest {
 
     @Test
     void checkMessageOnCommand_userInState_returnsTrue(){
+        //Mockito.when(bot.sendMessage(Mockito.anyString(), Mockito.anyString()));
         Mockito.when(message.isCommand()).thenReturn(true);
         Mockito.when(message.getText()).thenReturn(Commands.CALORIES.getText());
         userCommandStates.put(userId, Commands.CALORIES);
