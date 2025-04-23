@@ -112,13 +112,14 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
     }
 
     public int checkValidDataSex(int iterator, String userId, String text) {
-        if (text.equals(Sex.MAN.getText()) || text.equals(Sex.WOMAN.getText())) {
-            addResponseOnQuestion(userId, text, iterator);
-        } else {
-            String response = """
-                    Выберите ответ из предложенных
-                    """;
-            sendMessage(response, userId);
+        try {
+            if (text.equals(Sex.MAN.getText()) || text.equals(Sex.WOMAN.getText())) {
+                addResponseOnQuestion(userId, text, iterator);
+            } else {
+                throw new NotValidDataException("Нет такого варианта ответа\nВыберите ответ из предложенных");
+            }
+        } catch (NotValidDataException e) {
+            sendMessage(e.getMessage(), userId);
             iterator--;
             iteratorUserById.replace(userId, iterator);
         }
