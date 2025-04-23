@@ -1,10 +1,7 @@
 package com.tuaev.password_generator_and_calorie_calculator.bot;
 
 import com.tuaev.password_generator_and_calorie_calculator.configuration_properties_bot.ConfigurationPropertiesBot;
-import com.tuaev.password_generator_and_calorie_calculator.enums.Activity;
-import com.tuaev.password_generator_and_calorie_calculator.enums.Commands;
-import com.tuaev.password_generator_and_calorie_calculator.enums.Sex;
-import com.tuaev.password_generator_and_calorie_calculator.enums.QuestionsCalories;
+import com.tuaev.password_generator_and_calorie_calculator.enums.*;
 import com.tuaev.password_generator_and_calorie_calculator.exeception.StringMaxLengthExceededException;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -28,6 +25,7 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
     private final ConfigurationPropertiesBot configurationPropertiesBot;
     private final Map<String, Commands> userCommandStates = new HashMap<>();
     private final Map<String, Integer> iteratorUserById = new HashMap<>();
+    private final QuestionsPassword[] questionsPasswords = QuestionsPassword.values();
     private final QuestionsCalories[] questionsCalories = QuestionsCalories.values();
     private final Activity[] activities = Activity.values();
     private final Map<String, List<Map<QuestionsCalories, String>>> responsesUserOnQuestionsCalories = new HashMap<>();
@@ -52,111 +50,107 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         Message message = update.getMessage();
         User user = message.getFrom();
         String userId = String.valueOf(user.getId());
-        boolean isCommand = checkMessageOnCommand(message, userId);
-        checkStateUser(userId, message);
+        String text = message.getText();
+        boolean isCommand = message.isCommand();
+        checkMessageOnCommandFromUser(isCommand, text, userId);
+        processingCommand(text, userId);
         long end = System.currentTimeMillis();
         String result = String.format("Выполнено за %dms", end - start);
         logger.info(result);
     }
 
-    public boolean checkMessageOnCommand(Message message, String userId) {
-        Commands state = userCommandStates.get(userId);
-        if (state != null) {
-            return true;
+    public void checkMessageOnCommandFromUser(boolean isCommand, String text, String userId) {
+        if (userCommandStates.get(userId) != null) {
+            return;
         }
-        boolean isCommand = message.isCommand();
-        String textMessage = message.getText();
-        if (isCommand && textMessage.equals(Commands.START.getText())) {
+        if (isCommand && text.equals(Commands.START.getText())) {
             handleCommandStart(Commands.START.getInfo(), userId);
-            return true;
-        }
-        if (isCommand && textMessage.equals(Commands.CALORIES.getText())) {
-            handleCommandCalories(Commands.CALORIES.getInfo(), userId, deleteKeyboard());
+        } else if (isCommand && text.equals(Commands.CALORIES.getText())) {
             userCommandStates.put(userId, Commands.CALORIES);
             iteratorUserById.put(userId, 0);
-            return true;
-        }
-        if (isCommand && textMessage.equals(Commands.PASSWORD.getText())){
+            handleCommandCalories(Commands.CALORIES.getInfo(), userId, deleteKeyboard());
+        } else if (isCommand && text.equals(Commands.PASSWORD.getText())) {
+            userCommandStates.put(userId, Commands.PASSWORD);
+            iteratorUserById.put(userId, 0);
             handleCommandPassword(Commands.PASSWORD.getInfo(), userId, deleteKeyboard());
-            return true;
+        } else {
+            handleNoCommand(userId);
         }
-        handleNoCommand(userId);
-        return false;
     }
 
-    public int checkValidData(int iterator, String userId, Message message) {
+    public int checkValidData(int iterator, String userId, String text) {
         if (iterator > 0 && iterator <= questionsCalories.length) {
             if (questionsCalories[iterator - 1] == QuestionsCalories.WEIGHT) {
-                iterator = checkValidDataWeight(iterator, userId, message);
+                iterator = checkValidDataWeight(iterator, userId, text);
             } else if (questionsCalories[iterator - 1] == QuestionsCalories.HEIGHT) {
-                iterator = checkValidDataHeight(iterator, userId, message);
+                iterator = checkValidDataHeight(iterator, userId, text);
             } else if (questionsCalories[iterator - 1] == QuestionsCalories.AGE) {
-                iterator = checkValidDataAge(iterator, userId, message);
+                iterator = checkValidDataAge(iterator, userId, text);
             } else if (questionsCalories[iterator - 1] == QuestionsCalories.SEX) {
-                iterator = checkValidDataSex(iterator, userId, message);
+                iterator = checkValidDataSex(iterator, userId, text);
             } else if (questionsCalories[iterator - 1] == QuestionsCalories.ACTIVITY) {
-                iterator = checkValidDataActivity(iterator, userId, message);
+                iterator = checkValidDataActivity(iterator, userId, text);
             }
         }
         return iterator;
     }
 
-    public int checkValidDataActivity(int iterator, String userId, Message message) {
+    public int checkValidDataActivity(int iterator, String userId, String text) {
         boolean isValidDataActivity = Arrays.stream(activities).anyMatch(activity ->
-                activity.getText().equals(message.getText()));
+                activity.getText().equals(text));
         if (isValidDataActivity) {
-            addedResponseOnQuestion(userId, message, iterator);
+            addedResponseOnQuestion(userId, text, iterator);
         } else {
-            String text = """
+            String response = """
                     Выберите ответ из предложенных
                     """;
-            sendKeyboardActivities(text, userId, getKeyboardActivity());
+            sendKeyboardActivities(response, userId, getKeyboardActivity());
             iterator--;
             iteratorUserById.replace(userId, iterator);
         }
         return iterator;
     }
 
-    public int checkValidDataSex(int iterator, String userId, Message message) {
-        if (message.getText().equals(Sex.MAN.getText()) || message.getText().equals(Sex.WOMAN.getText())) {
-            addedResponseOnQuestion(userId, message, iterator);
+    public int checkValidDataSex(int iterator, String userId, String text) {
+        if (text.equals(Sex.MAN.getText()) || text.equals(Sex.WOMAN.getText())) {
+            addedResponseOnQuestion(userId, text, iterator);
         } else {
-            String text = """
+            String response = """
                     Выберите ответ из предложенных
                     """;
-            sendMessage(text, userId);
+            sendMessage(response, userId);
             iterator--;
             iteratorUserById.replace(userId, iterator);
         }
         return iterator;
     }
 
-    public int checkValidDataAge(int iterator, String userId, Message message) {
+    public int checkValidDataAge(int iterator, String userId, String text) {
         try {
             int min = 1;
             int max = 100;
             int age;
-            if (message.getText().length() > 3) {
+            if (text.length() > 3) {
                 throw new StringMaxLengthExceededException("Длина значения возраста не должна превышать 3-х символов");
             } else {
-                age = Integer.parseInt(message.getText());
+                age = Integer.parseInt(text);
             }
             boolean isValidAge = age >= min && age <= max;
             if (isValidAge) {
-                addedResponseOnQuestion(userId, message, iterator);
+                addedResponseOnQuestion(userId, text, iterator);
             } else {
-                String text = """
+                String response = """
                         Возраст не может быть меньше 1 или больше 100
                         """;
-                sendMessage(text, userId);
+                sendMessage(response, userId);
                 iterator--;
                 iteratorUserById.replace(userId, iterator);
             }
         } catch (NumberFormatException e) {
-            String text = """
+            String response = """
                     Значение возраста должно быть целым числом
                     """;
-            sendMessage(text, userId);
+            sendMessage(response, userId);
             iterator--;
             iteratorUserById.replace(userId, iterator);
         } catch (StringMaxLengthExceededException e) {
@@ -167,32 +161,32 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         return iterator;
     }
 
-    public int checkValidDataHeight(int iterator, String userId, Message message) {
+    public int checkValidDataHeight(int iterator, String userId, String text) {
         try {
             int min = 1;
             int max = 250;
             int height;
-            if (message.getText().length() > 3) {
+            if (text.length() > 3) {
                 throw new StringMaxLengthExceededException("Длина значения роста не должна превышать 3-х символов");
             } else {
-                height = Integer.parseInt(message.getText());
+                height = Integer.parseInt(text);
             }
             boolean isValidHeight = height >= min && height <= max;
             if (isValidHeight) {
-                addedResponseOnQuestion(userId, message, iterator);
+                addedResponseOnQuestion(userId, text, iterator);
             } else {
-                String text = """
+                String response = """
                         Рост не может быть меньше 1 или больше 250
                         """;
-                sendMessage(text, userId);
+                sendMessage(response, userId);
                 iterator--;
                 iteratorUserById.replace(userId, iterator);
             }
         } catch (NumberFormatException e) {
-            String text = """
+            String response = """
                     Значение роста должно быть целым числом
                     """;
-            sendMessage(text, userId);
+            sendMessage(response, userId);
             iterator--;
             iteratorUserById.replace(userId, iterator);
         } catch (StringMaxLengthExceededException e) {
@@ -203,32 +197,32 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         return iterator;
     }
 
-    public int checkValidDataWeight(int iterator, String userId, Message message) {
+    public int checkValidDataWeight(int iterator, String userId, String text) {
         try {
             int min = 1;
             int max = 500;
             int weight;
-            if (message.getText().length() > 3) {
+            if (text.length() > 3) {
                 throw new StringMaxLengthExceededException("Длина значения веса не должна превышать 3-х символов");
             } else {
-                weight = Integer.parseInt(message.getText());
+                weight = Integer.parseInt(text);
             }
             boolean isValidWeight = weight >= min && weight <= max;
             if (isValidWeight) {
-                addedResponseOnQuestion(userId, message, iterator);
+                addedResponseOnQuestion(userId, text, iterator);
             } else {
-                String text = """
+                String response = """
                         Вес не может быть меньше 1 или больше 500
                         """;
-                sendMessage(text, userId);
+                sendMessage(response, userId);
                 iterator--;
                 iteratorUserById.replace(userId, iterator);
             }
         } catch (NumberFormatException e) {
-            String text = """
+            String response = """
                     Значение веса должно быть целым числом
                     """;
-            sendMessage(text, userId);
+            sendMessage(response, userId);
             iterator--;
             iteratorUserById.replace(userId, iterator);
         } catch (StringMaxLengthExceededException e) {
@@ -239,34 +233,44 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         return iterator;
     }
 
-    public void checkStateUser(String userId, Message message) {
-        if (userCommandStates.get(userId) == Commands.CALORIES) {
-            int iterator = iteratorUserById.get(userId);
-            iterator = checkValidData(iterator, userId, message);
-            if (iterator < questionsCalories.length) {
-                if (questionsCalories[iterator] == QuestionsCalories.WEIGHT || questionsCalories[iterator] == QuestionsCalories.HEIGHT || questionsCalories[iterator] == QuestionsCalories.AGE) {
-                    sendMessage(questionsCalories[iterator].getText(), userId);
-                    iterator++;
-                    iteratorUserById.replace(userId, iterator);
-                } else if (questionsCalories[iterator] == QuestionsCalories.SEX) {
-                    sendKeyboardSex(questionsCalories[iterator].getText(), userId, getReplyKeyboardMarkupSex());
-                    iterator++;
-                    iteratorUserById.replace(userId, iterator);
-                } else if (questionsCalories[iterator] == QuestionsCalories.ACTIVITY) {
-                    String text = getActivities();
-                    sendMessage(questionsCalories[iterator].getText(), userId);
-                    sendKeyboardActivities(text, userId, getKeyboardActivity());
-                    iterator++;
-                    iteratorUserById.replace(userId, iterator);
-                }
-            }
+    public void processingCommand(String text, String userId) {
+        Commands state = userCommandStates.get(userId);
+        int iterator = 0;
+        if (state != null) {
+            iterator = iteratorUserById.get(userId);
+        }
+        if (state == Commands.CALORIES) {
+            iterator = checkValidData(iterator, userId, text);
+            sendingQuestions(userId, iterator);
             if (responsesUserOnQuestionsCalories.get(userId) != null && responsesUserOnQuestionsCalories.get(userId).size() == questionsCalories.length) {
                 finalizeCalorieCalculationAndSendResult(userId);
             }
         }
-
         if (userCommandStates.get(userId) == Commands.PASSWORD) {
+            if (questionsPasswords[iterator] == QuestionsPassword.CHARACTERS) {
+                sendKeyboardCharacters(QuestionsPassword.CHARACTERS.getText(), userId, getReplyKeyboardMarkupCharacters());
+            }
+            sendMessage(QuestionsPassword.LENGTH.getText(), userId);
+        }
+    }
 
+    public void sendingQuestions(String userId, int iterator) {
+        if (iterator < questionsCalories.length) {
+            if (questionsCalories[iterator] == QuestionsCalories.WEIGHT || questionsCalories[iterator] == QuestionsCalories.HEIGHT || questionsCalories[iterator] == QuestionsCalories.AGE) {
+                sendMessage(questionsCalories[iterator].getText(), userId);
+                iterator++;
+                iteratorUserById.replace(userId, iterator);
+            } else if (questionsCalories[iterator] == QuestionsCalories.SEX) {
+                sendKeyboardSex(questionsCalories[iterator].getText(), userId, getReplyKeyboardMarkupSex());
+                iterator++;
+                iteratorUserById.replace(userId, iterator);
+            } else if (questionsCalories[iterator] == QuestionsCalories.ACTIVITY) {
+                String text = getActivities();
+                sendMessage(questionsCalories[iterator].getText(), userId);
+                sendKeyboardActivities(text, userId, getKeyboardActivity());
+                iterator++;
+                iteratorUserById.replace(userId, iterator);
+            }
         }
     }
 
@@ -300,10 +304,10 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         responsesUserOnQuestionsCalories.remove(userId);
     }
 
-    public void addedResponseOnQuestion(String userId, Message message, int count) {
+    public void addedResponseOnQuestion(String userId, String text, int count) {
         if (count > 0 && count <= questionsCalories.length) {
             Map<QuestionsCalories, String> questionAndResponse = new EnumMap<>(QuestionsCalories.class);
-            questionAndResponse.put(questionsCalories[count - 1], message.getText());
+            questionAndResponse.put(questionsCalories[count - 1], text);
             List<Map<QuestionsCalories, String>> list;
             if (responsesUserOnQuestionsCalories.get(userId) == null) {
                 list = new ArrayList<>();
@@ -358,6 +362,30 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         markup.setResizeKeyboard(true);
         markup.setOneTimeKeyboard(true);
         return markup;
+    }
+
+    public ReplyKeyboardMarkup getReplyKeyboardMarkupCharacters() {
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> rows = new ArrayList<>();
+        KeyboardRow keyboardRow = getKeyboardButtons();
+        rows.add(keyboardRow);
+        replyKeyboardMarkup.setKeyboard(rows);
+        replyKeyboardMarkup.setResizeKeyboard(true);
+        replyKeyboardMarkup.setOneTimeKeyboard(true);
+        return replyKeyboardMarkup;
+    }
+
+    public KeyboardRow getKeyboardButtons() {
+        KeyboardRow keyboardRow = new KeyboardRow();
+        KeyboardButton button1 = new KeyboardButton(Chars.NUMBERS.getInfo());
+        KeyboardButton button2 = new KeyboardButton(Chars.SPECIAL_CHARACTERS.getInfo());
+        KeyboardButton button3 = new KeyboardButton(Chars.UPPER_CASE.getInfo());
+        KeyboardButton button4 = new KeyboardButton(Chars.LOWER_CASE.getInfo());
+        keyboardRow.add(button1);
+        keyboardRow.add(button2);
+        keyboardRow.add(button3);
+        keyboardRow.add(button4);
+        return keyboardRow;
     }
 
     public int calorieCalculator(int weight, int height, int age, String floor, String activity) {
@@ -455,6 +483,18 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
                     .chatId(userId)
                     .replyMarkup(keyboardCreate)
                     .text(text)
+                    .build());
+        } catch (TelegramApiException e) {
+            getError(e);
+        }
+    }
+
+    public void sendKeyboardCharacters(String text, String userId, ReplyKeyboardMarkup replyKeyboardMarkup) {
+        try {
+            execute(SendMessage.builder()
+                    .chatId(userId)
+                    .text(text)
+                    .replyMarkup(replyKeyboardMarkup)
                     .build());
         } catch (TelegramApiException e) {
             getError(e);
