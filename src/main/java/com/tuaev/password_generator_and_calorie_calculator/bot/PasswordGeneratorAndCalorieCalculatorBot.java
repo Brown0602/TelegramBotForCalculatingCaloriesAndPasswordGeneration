@@ -2,7 +2,7 @@ package com.tuaev.password_generator_and_calorie_calculator.bot;
 
 import com.tuaev.password_generator_and_calorie_calculator.configuration_properties_bot.ConfigurationPropertiesBot;
 import com.tuaev.password_generator_and_calorie_calculator.enums.*;
-import com.tuaev.password_generator_and_calorie_calculator.exeception.StringMaxLengthExceededException;
+import com.tuaev.password_generator_and_calorie_calculator.exeception.NotValidDataException;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -99,7 +99,7 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         boolean isValidDataActivity = Arrays.stream(activities).anyMatch(activity ->
                 activity.getText().equals(text));
         if (isValidDataActivity) {
-            addedResponseOnQuestion(userId, text, iterator);
+            addResponseOnQuestion(userId, text, iterator);
         } else {
             String response = """
                     Выберите ответ из предложенных
@@ -113,7 +113,7 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
 
     public int checkValidDataSex(int iterator, String userId, String text) {
         if (text.equals(Sex.MAN.getText()) || text.equals(Sex.WOMAN.getText())) {
-            addedResponseOnQuestion(userId, text, iterator);
+            addResponseOnQuestion(userId, text, iterator);
         } else {
             String response = """
                     Выберите ответ из предложенных
@@ -131,13 +131,13 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
             int max = 100;
             int age;
             if (text.length() > 3) {
-                throw new StringMaxLengthExceededException("Длина значения возраста не должна превышать 3-х символов");
+                throw new NotValidDataException("Длина значения возраста не должна превышать 3-х символов");
             } else {
                 age = Integer.parseInt(text);
             }
             boolean isValidAge = age >= min && age <= max;
             if (isValidAge) {
-                addedResponseOnQuestion(userId, text, iterator);
+                addResponseOnQuestion(userId, text, iterator);
             } else {
                 String response = """
                         Возраст не может быть меньше 1 или больше 100
@@ -153,7 +153,7 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
             sendMessage(response, userId);
             iterator--;
             iteratorUserById.replace(userId, iterator);
-        } catch (StringMaxLengthExceededException e) {
+        } catch (NotValidDataException e) {
             sendMessage(e.getMessage(), userId);
             iterator--;
             iteratorUserById.replace(userId, iterator);
@@ -167,13 +167,13 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
             int max = 250;
             int height;
             if (text.length() > 3) {
-                throw new StringMaxLengthExceededException("Длина значения роста не должна превышать 3-х символов");
+                throw new NotValidDataException("Длина значения роста не должна превышать 3-х символов");
             } else {
                 height = Integer.parseInt(text);
             }
             boolean isValidHeight = height >= min && height <= max;
             if (isValidHeight) {
-                addedResponseOnQuestion(userId, text, iterator);
+                addResponseOnQuestion(userId, text, iterator);
             } else {
                 String response = """
                         Рост не может быть меньше 1 или больше 250
@@ -189,7 +189,7 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
             sendMessage(response, userId);
             iterator--;
             iteratorUserById.replace(userId, iterator);
-        } catch (StringMaxLengthExceededException e) {
+        } catch (NotValidDataException e) {
             sendMessage(e.getMessage(), userId);
             iterator--;
             iteratorUserById.replace(userId, iterator);
@@ -199,33 +199,12 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
 
     public int checkValidDataWeight(int iterator, String userId, String text) {
         try {
-            int min = 1;
-            int max = 500;
-            int weight;
-            if (text.length() > 3) {
-                throw new StringMaxLengthExceededException("Длина значения веса не должна превышать 3-х символов");
+            if (text.length() <= 3 && text.matches("\\d+") && Integer.parseInt(text) > 0 && Integer.parseInt(text) < 500) {
+                addResponseOnQuestion(userId, text, iterator);
             } else {
-                weight = Integer.parseInt(text);
+                throw new NotValidDataException("Вес должен быть больше 0 и меньше 500, а так же содержать только целые числа");
             }
-            boolean isValidWeight = weight >= min && weight <= max;
-            if (isValidWeight) {
-                addedResponseOnQuestion(userId, text, iterator);
-            } else {
-                String response = """
-                        Вес не может быть меньше 1 или больше 500
-                        """;
-                sendMessage(response, userId);
-                iterator--;
-                iteratorUserById.replace(userId, iterator);
-            }
-        } catch (NumberFormatException e) {
-            String response = """
-                    Значение веса должно быть целым числом
-                    """;
-            sendMessage(response, userId);
-            iterator--;
-            iteratorUserById.replace(userId, iterator);
-        } catch (StringMaxLengthExceededException e) {
+        } catch (NotValidDataException e) {
             sendMessage(e.getMessage(), userId);
             iterator--;
             iteratorUserById.replace(userId, iterator);
@@ -304,7 +283,7 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         responsesUserOnQuestionsCalories.remove(userId);
     }
 
-    public void addedResponseOnQuestion(String userId, String text, int count) {
+    public void addResponseOnQuestion(String userId, String text, int count) {
         if (count > 0 && count <= questionsCalories.length) {
             Map<QuestionsCalories, String> questionAndResponse = new EnumMap<>(QuestionsCalories.class);
             questionAndResponse.put(questionsCalories[count - 1], text);
