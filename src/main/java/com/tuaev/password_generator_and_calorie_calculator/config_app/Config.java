@@ -1,6 +1,6 @@
 package com.tuaev.password_generator_and_calorie_calculator.config_app;
 
-import com.tuaev.password_generator_and_calorie_calculator.bot.PasswordGeneratorAndCalorieCalculatorBot;
+import com.tuaev.password_generator_and_calorie_calculator.bot.UtilsBot;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
@@ -15,7 +15,7 @@ public class Config {
     private final Logger logger = Logger.getLogger(Config.class.getName());
 
     @Bean
-    public TelegramBotsApi telegramBotsApi(PasswordGeneratorAndCalorieCalculatorBot bot){
+    public TelegramBotsApi telegramBotsApi(UtilsBot bot){
         try {
             TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
             telegramBotsApi.registerBot(bot);

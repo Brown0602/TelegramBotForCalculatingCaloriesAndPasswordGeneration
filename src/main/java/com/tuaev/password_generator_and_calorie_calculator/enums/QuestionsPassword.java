@@ -1,7 +1,7 @@
 package com.tuaev.password_generator_and_calorie_calculator.enums;
 
 public enum QuestionsPassword {
-    CHARACTERS("Какие символы ты хочешь видеть у себя в пароле?"),
+    CHARACTERS("Какие символы ты хочешь видеть у себя в пароле?\nМожно выбрать несколько вариантов"),
     LENGTH("Какой длины ты хочешь пароль? Максимальное допустимое количество символов: 16");
 
     private final String text;

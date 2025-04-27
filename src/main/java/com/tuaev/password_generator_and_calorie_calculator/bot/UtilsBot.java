@@ -2,15 +2,21 @@ package com.tuaev.password_generator_and_calorie_calculator.bot;
 
 import com.tuaev.password_generator_and_calorie_calculator.configuration_properties_bot.ConfigurationPropertiesBot;
 import com.tuaev.password_generator_and_calorie_calculator.enums.*;
+import com.tuaev.password_generator_and_calorie_calculator.exeception.NotValidCommandException;
 import com.tuaev.password_generator_and_calorie_calculator.exeception.NotValidDataException;
+import com.tuaev.password_generator_and_calorie_calculator.services.IteratorService;
+import com.tuaev.password_generator_and_calorie_calculator.services.PasswordGeneratorService;
+import com.tuaev.password_generator_and_calorie_calculator.services.SendMessageService;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -19,21 +25,21 @@ import java.util.*;
 import java.util.logging.Logger;
 
 @Component
-public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollingBot {
+public class UtilsBot extends TelegramLongPollingBot implements SendMessageService, IteratorService {
 
-    private final Logger logger = Logger.getLogger(PasswordGeneratorAndCalorieCalculatorBot.class.getName());
+    private final Logger logger = Logger.getLogger(UtilsBot.class.getName());
     private final ConfigurationPropertiesBot configurationPropertiesBot;
+    private final PasswordGeneratorService passwordGeneratorService;
     private final Map<String, Commands> userCommandStates = new HashMap<>();
     private final Map<String, Integer> iteratorUserById = new HashMap<>();
-    private final QuestionsPassword[] questionsPasswords = QuestionsPassword.values();
     private final QuestionsCalories[] questionsCalories = QuestionsCalories.values();
     private final Commands[] commands = Commands.values();
     private final Activity[] activities = Activity.values();
     private final Map<String, List<Map<QuestionsCalories, String>>> responsesUserOnQuestionsCalories = new HashMap<>();
-    private final Map<String, List<Map<QuestionsPassword, String>>> responsesUserOnQuestionsPassword = new HashMap<>();
 
-    public PasswordGeneratorAndCalorieCalculatorBot(ConfigurationPropertiesBot configurationPropertiesBot) {
+    public UtilsBot(ConfigurationPropertiesBot configurationPropertiesBot, PasswordGeneratorService passwordGeneratorService) {
         this.configurationPropertiesBot = configurationPropertiesBot;
+        this.passwordGeneratorService = passwordGeneratorService;
     }
 
     @Override
@@ -62,26 +68,30 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
     }
 
     public void checkMessageOnCommandFromUser(boolean isCommand, String text, String userId) {
-        if (Arrays.stream(commands).noneMatch(c -> c.getText().equals(text))){
-            handleNoCommand(userId);
-        }
         if (userCommandStates.get(userId) != null) {
             return;
         }
+        if (Arrays.stream(commands).noneMatch(c -> c.getText().equals(text))) {
+            try {
+                throw new NotValidCommandException("Для взаимодейсвия с ботом воспользуйтесь командным меню");
+            } catch (NotValidCommandException e) {
+                sendMessage(e.getMessage(), userId);
+            }
+        }
         if (isCommand && text.equals(Commands.START.getText())) {
-            handleCommandStart(Commands.START.getInfo(), userId);
+            sendMessage(Commands.START.getInfo(), userId);
             return;
         }
         if (isCommand && text.equals(Commands.CALORIES.getText())) {
             userCommandStates.put(userId, Commands.CALORIES);
             iteratorUserById.put(userId, 0);
-            handleCommandCalories(Commands.CALORIES.getInfo(), userId, deleteKeyboard());
+            sendMessageWithRemovedKeyboard(Commands.CALORIES.getInfo(), userId, deleteKeyboard());
             return;
         }
         if (isCommand && text.equals(Commands.PASSWORD.getText())) {
             userCommandStates.put(userId, Commands.PASSWORD);
             iteratorUserById.put(userId, 0);
-            handleCommandPassword(Commands.PASSWORD.getInfo(), userId, deleteKeyboard());
+            sendMessageWithRemovedKeyboard(Commands.PASSWORD.getInfo(), userId, deleteKeyboard());
         }
     }
 
@@ -116,9 +126,9 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
                 throw new NotValidDataException("Нет такого варианта ответа\nВыберите ответ из предложенных");
             }
         } catch (NotValidDataException e) {
-            sendKeyboardActivities(e.getMessage(), userId, getKeyboardActivity());
-            iterator--;
-            iteratorUserById.replace(userId, iterator);
+            sendKeyboardWithHtmlTextSupport(e.getMessage(), userId, getKeyboardActivity());
+            iterator = decrement(iterator);
+            replaceIteratorByUserId(userId, iterator);
         }
         return iterator;
     }
@@ -132,8 +142,8 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
             }
         } catch (NotValidDataException e) {
             sendMessage(e.getMessage(), userId);
-            iterator--;
-            iteratorUserById.replace(userId, iterator);
+            iterator = decrement(iterator);
+            replaceIteratorByUserId(userId, iterator);
         }
         return iterator;
     }
@@ -147,8 +157,8 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
             }
         } catch (NotValidDataException e) {
             sendMessage(e.getMessage(), userId);
-            iterator--;
-            iteratorUserById.replace(userId, iterator);
+            iterator = decrement(iterator);
+            replaceIteratorByUserId(userId, iterator);
         }
         return iterator;
     }
@@ -162,8 +172,8 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
             }
         } catch (NotValidDataException e) {
             sendMessage(e.getMessage(), userId);
-            iterator--;
-            iteratorUserById.replace(userId, iterator);
+            iterator = decrement(iterator);
+            replaceIteratorByUserId(userId, iterator);
         }
         return iterator;
     }
@@ -177,8 +187,8 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
             }
         } catch (NotValidDataException e) {
             sendMessage(e.getMessage(), userId);
-            iterator--;
-            iteratorUserById.replace(userId, iterator);
+            iterator = decrement(iterator);
+            replaceIteratorByUserId(userId, iterator);
         }
         return iterator;
     }
@@ -197,36 +207,59 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
             }
         }
         if (userCommandStates.get(userId) == Commands.PASSWORD) {
-            if (questionsPasswords[iterator] == QuestionsPassword.CHARACTERS) {
-                sendKeyboardCharacters(QuestionsPassword.CHARACTERS.getText(), userId, getReplyKeyboardMarkupCharacters());
-                iterator++;
-                iteratorUserById.replace(userId, iterator);
-                return;
+            InlineKeyboardMarkup inlineKeyboardMarkup = getInlineKeyboardMarkup();
+            String textQuestion = null;
+            QuestionsPassword questionsPassword = null;
+            if (iterator < passwordGeneratorService.getLengthQuestionsPassword()) {
+                textQuestion = passwordGeneratorService.getTextQuestionPasswordByIterator(iterator);
+                questionsPassword = passwordGeneratorService.getQuestionPasswordByIterator(iterator);
             }
-            if (questionsPasswords[iterator] == QuestionsPassword.LENGTH) {
-                sendMessage(userId, questionsPasswords[iterator].getText());
+            if (questionsPassword == QuestionsPassword.CHARACTERS) {
+                ReplyKeyboardMarkup keyboard = passwordGeneratorService.getReplyKeyboardMarkupCharacters();
+                sendKeyboardWithoutAnyModSupport(textQuestion, userId, keyboard);
             }
+            if (questionsPassword == QuestionsPassword.LENGTH) {
+                sendMessage(textQuestion, userId);
+            }
+            passwordGeneratorService.addResponseOnQuestion(userId, text, iterator);
+            iterator = increment(iterator);
+            replaceIteratorByUserId(userId, iterator);
         }
+    }
+
+    public InlineKeyboardMarkup getInlineKeyboardMarkup() {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+        List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        button.setText("Нажми на меня, если выбрал желаемые символы");
+        button.setCallbackData("true");
+        inlineKeyboardButtons.add(button);
+        rowsInline.add(inlineKeyboardButtons);
+        inlineKeyboardMarkup.setKeyboard(rowsInline);
+        return inlineKeyboardMarkup;
     }
 
     public void sendingQuestions(String userId, int iterator) {
         if (iterator < questionsCalories.length) {
             if (questionsCalories[iterator] == QuestionsCalories.WEIGHT || questionsCalories[iterator] == QuestionsCalories.HEIGHT || questionsCalories[iterator] == QuestionsCalories.AGE) {
                 sendMessage(questionsCalories[iterator].getText(), userId);
-                iterator++;
-                iteratorUserById.replace(userId, iterator);
+                iterator = increment(iterator);
             } else if (questionsCalories[iterator] == QuestionsCalories.SEX) {
-                sendKeyboardSex(questionsCalories[iterator].getText(), userId, getReplyKeyboardMarkupSex());
-                iterator++;
-                iteratorUserById.replace(userId, iterator);
+                sendKeyboardWithoutAnyModSupport(questionsCalories[iterator].getText(), userId, getReplyKeyboardMarkupSex());
+                iterator = increment(iterator);
             } else if (questionsCalories[iterator] == QuestionsCalories.ACTIVITY) {
                 String text = getActivities();
                 sendMessage(questionsCalories[iterator].getText(), userId);
-                sendKeyboardActivities(text, userId, getKeyboardActivity());
-                iterator++;
-                iteratorUserById.replace(userId, iterator);
+                sendKeyboardWithHtmlTextSupport(text, userId, getKeyboardActivity());
+                iterator = increment(iterator);
             }
+            replaceIteratorByUserId(userId, iterator);
         }
+    }
+
+    private void replaceIteratorByUserId(String userId, int iterator) {
+        iteratorUserById.replace(userId, iterator);
     }
 
     public String getActivities() {
@@ -253,16 +286,16 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
                 С учетом введенных вами данных, ваш результат будет равен %d ккал в день для поддержания веса.
                 Для сброса веса убавьте 500 ккал, а для набора добавьте 500 ккал.
                 """, calorieCalculator(weight, height, age, sex, activity));
-        handleCommandCalories(result, userId, deleteKeyboard());
+        sendMessageWithRemovedKeyboard(result, userId, deleteKeyboard());
         userCommandStates.remove(userId);
         iteratorUserById.remove(userId);
         responsesUserOnQuestionsCalories.remove(userId);
     }
 
-    public void addResponseOnQuestion(String userId, String text, int count) {
-        if (count > 0 && count <= questionsCalories.length) {
+    public void addResponseOnQuestion(String userId, String text, int iterator) {
+        if (iterator > 0 && iterator <= questionsCalories.length) {
             Map<QuestionsCalories, String> questionAndResponse = new EnumMap<>(QuestionsCalories.class);
-            questionAndResponse.put(questionsCalories[count - 1], text);
+            questionAndResponse.put(questionsCalories[iterator - 1], text);
             List<Map<QuestionsCalories, String>> list;
             if (responsesUserOnQuestionsCalories.get(userId) == null) {
                 list = new ArrayList<>();
@@ -319,30 +352,6 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         return markup;
     }
 
-    public ReplyKeyboardMarkup getReplyKeyboardMarkupCharacters() {
-        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
-        List<KeyboardRow> rows = new ArrayList<>();
-        KeyboardRow keyboardRow = getKeyboardButtons();
-        rows.add(keyboardRow);
-        replyKeyboardMarkup.setKeyboard(rows);
-        replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(true);
-        return replyKeyboardMarkup;
-    }
-
-    public KeyboardRow getKeyboardButtons() {
-        KeyboardRow keyboardRow = new KeyboardRow();
-        KeyboardButton button1 = new KeyboardButton(Chars.NUMBERS.getInfo());
-        KeyboardButton button2 = new KeyboardButton(Chars.SPECIAL_CHARACTERS.getInfo());
-        KeyboardButton button3 = new KeyboardButton(Chars.UPPER_CASE.getInfo());
-        KeyboardButton button4 = new KeyboardButton(Chars.LOWER_CASE.getInfo());
-        keyboardRow.add(button1);
-        keyboardRow.add(button2);
-        keyboardRow.add(button3);
-        keyboardRow.add(button4);
-        return keyboardRow;
-    }
-
     public int calorieCalculator(int weight, int height, int age, String floor, String activity) {
         double result;
         Optional<Activity> optionalActivity = Arrays.stream(activities)
@@ -361,29 +370,7 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         logger.info("Произошла ошибка: " + e.getMessage());
     }
 
-    public void handleNoCommand(String userId) {
-        try {
-            String text = "Для взаимодейсвия с ботом воспользуйтесь командным меню";
-            execute(SendMessage.builder()
-                    .chatId(userId)
-                    .text(text)
-                    .build());
-        } catch (TelegramApiException e) {
-            getError(e);
-        }
-    }
-
-    public void handleCommandStart(String text, String userId) {
-        try {
-            execute(SendMessage.builder()
-                    .chatId(userId)
-                    .text(text)
-                    .build());
-        } catch (TelegramApiException e) {
-            getError(e);
-        }
-    }
-
+    @Override
     public void sendMessage(String text, String userId) {
         try {
             execute(SendMessage.builder()
@@ -395,35 +382,25 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         }
     }
 
-    public void handleCommandCalories(String text, String userId, ReplyKeyboardRemove keyboardRemove) {
+    @Override
+    public void sendMessageWithRemovedKeyboard(String text, String userId, ReplyKeyboardRemove keyboard) {
         try {
             execute(SendMessage.builder()
                     .chatId(userId)
                     .text(text)
-                    .replyMarkup(keyboardRemove)
+                    .replyMarkup(keyboard)
                     .build());
         } catch (TelegramApiException e) {
             getError(e);
         }
     }
 
-    public void handleCommandPassword(String text, String userId, ReplyKeyboardRemove keyboardRemove) {
+    @Override
+    public void sendKeyboardWithHtmlTextSupport(String text, String userId, ReplyKeyboardMarkup keyboard) {
         try {
             execute(SendMessage.builder()
                     .chatId(userId)
-                    .text(text)
-                    .replyMarkup(keyboardRemove)
-                    .build());
-        } catch (TelegramApiException e) {
-            getError(e);
-        }
-    }
-
-    public void sendKeyboardActivities(String text, String userId, ReplyKeyboardMarkup keyboardCreate) {
-        try {
-            execute(SendMessage.builder()
-                    .chatId(userId)
-                    .replyMarkup(keyboardCreate)
+                    .replyMarkup(keyboard)
                     .parseMode("HTML")
                     .text(text)
                     .build());
@@ -432,27 +409,28 @@ public class PasswordGeneratorAndCalorieCalculatorBot extends TelegramLongPollin
         }
     }
 
-    public void sendKeyboardSex(String text, String userId, ReplyKeyboardMarkup keyboardCreate) {
+    @Override
+    public void sendKeyboardWithoutAnyModSupport(String text, String userId, ReplyKeyboardMarkup keyboard) {
         try {
             execute(SendMessage.builder()
                     .chatId(userId)
-                    .replyMarkup(keyboardCreate)
                     .text(text)
+                    .replyMarkup(keyboard)
                     .build());
         } catch (TelegramApiException e) {
             getError(e);
         }
     }
 
-    public void sendKeyboardCharacters(String text, String userId, ReplyKeyboardMarkup replyKeyboardMarkup) {
-        try {
-            execute(SendMessage.builder()
-                    .chatId(userId)
-                    .text(text)
-                    .replyMarkup(replyKeyboardMarkup)
-                    .build());
-        } catch (TelegramApiException e) {
-            getError(e);
-        }
+    @Override
+    public int increment(int iterator) {
+        iterator++;
+        return iterator;
+    }
+
+    @Override
+    public int decrement(int iterator) {
+        iterator--;
+        return iterator;
     }
 }
