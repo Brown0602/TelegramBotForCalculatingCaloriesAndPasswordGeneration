@@ -3,7 +3,8 @@ package com.tuaev.password_generator_and_calorie_calculator.services;
 import com.tuaev.password_generator_and_calorie_calculator.enums.Chars;
 import com.tuaev.password_generator_and_calorie_calculator.enums.QuestionsPassword;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
@@ -52,15 +53,29 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService, SendK
     }
 
     @Override
-    public ReplyKeyboardMarkup getReplyKeyboardMarkupCharacters() {
-        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
-        List<KeyboardRow> rows = new ArrayList<>();
-        KeyboardRow keyboardRow = getKeyboardButtonsCharacters();
-        rows.add(keyboardRow);
-        replyKeyboardMarkup.setKeyboard(rows);
-        replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(true);
-        return replyKeyboardMarkup;
+    public InlineKeyboardMarkup getInlineKeyboardMarkupCharacters() {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+        List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
+        InlineKeyboardButton numbers = new InlineKeyboardButton();
+        numbers.setText("1\uFE0F⃣");
+        numbers.setCallbackData(Chars.NUMBERS.getInfo());
+        InlineKeyboardButton specialCharacters = new InlineKeyboardButton();
+        specialCharacters.setText("2\uFE0F⃣");
+        specialCharacters.setCallbackData(Chars.SPECIAL_CHARACTERS.getInfo());
+        InlineKeyboardButton lowerCase = new InlineKeyboardButton();
+        lowerCase.setText("3\uFE0F⃣");
+        lowerCase.setCallbackData(Chars.LOWER_CASE.getInfo());
+        InlineKeyboardButton upperCase = new InlineKeyboardButton();
+        upperCase.setText("4\uFE0F⃣");
+        upperCase.setCallbackData(Chars.UPPER_CASE.getInfo());
+        inlineKeyboardButtons.add(numbers);
+        inlineKeyboardButtons.add(specialCharacters);
+        inlineKeyboardButtons.add(lowerCase);
+        inlineKeyboardButtons.add(upperCase);
+        rowsInline.add(inlineKeyboardButtons);
+        inlineKeyboardMarkup.setKeyboard(rowsInline);
+        return inlineKeyboardMarkup;
     }
 
     @Override

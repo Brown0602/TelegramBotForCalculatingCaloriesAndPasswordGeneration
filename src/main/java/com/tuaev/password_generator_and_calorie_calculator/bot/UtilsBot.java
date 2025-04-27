@@ -14,9 +14,9 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -55,6 +55,9 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
     @Override
     public void onUpdateReceived(Update update) {
         long start = System.currentTimeMillis();
+        if (update.hasCallbackQuery()) {
+            return;
+        }
         Message message = update.getMessage();
         User user = message.getFrom();
         String userId = String.valueOf(user.getId());
@@ -207,7 +210,6 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
             }
         }
         if (userCommandStates.get(userId) == Commands.PASSWORD) {
-            InlineKeyboardMarkup inlineKeyboardMarkup = getInlineKeyboardMarkup();
             String textQuestion = null;
             QuestionsPassword questionsPassword = null;
             if (iterator < passwordGeneratorService.getLengthQuestionsPassword()) {
@@ -215,8 +217,8 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
                 questionsPassword = passwordGeneratorService.getQuestionPasswordByIterator(iterator);
             }
             if (questionsPassword == QuestionsPassword.CHARACTERS) {
-                ReplyKeyboardMarkup keyboard = passwordGeneratorService.getReplyKeyboardMarkupCharacters();
-                sendKeyboardWithoutAnyModSupport(textQuestion, userId, keyboard);
+                InlineKeyboardMarkup inlineKeyboardMarkup = passwordGeneratorService.getInlineKeyboardMarkupCharacters();
+                sendKeyboardWithoutAnyModSupport(textQuestion, userId, inlineKeyboardMarkup);
             }
             if (questionsPassword == QuestionsPassword.LENGTH) {
                 sendMessage(textQuestion, userId);
@@ -225,19 +227,6 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
             iterator = increment(iterator);
             replaceIteratorByUserId(userId, iterator);
         }
-    }
-
-    public InlineKeyboardMarkup getInlineKeyboardMarkup() {
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
-        InlineKeyboardButton button = new InlineKeyboardButton();
-        button.setText("Нажми на меня, если выбрал желаемые символы");
-        button.setCallbackData("true");
-        inlineKeyboardButtons.add(button);
-        rowsInline.add(inlineKeyboardButtons);
-        inlineKeyboardMarkup.setKeyboard(rowsInline);
-        return inlineKeyboardMarkup;
     }
 
     public void sendingQuestions(String userId, int iterator) {
@@ -383,12 +372,12 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
     }
 
     @Override
-    public void sendMessageWithRemovedKeyboard(String text, String userId, ReplyKeyboardRemove keyboard) {
+    public void sendMessageWithRemovedKeyboard(String text, String userId, ReplyKeyboard replyKeyboard) {
         try {
             execute(SendMessage.builder()
                     .chatId(userId)
                     .text(text)
-                    .replyMarkup(keyboard)
+                    .replyMarkup(replyKeyboard)
                     .build());
         } catch (TelegramApiException e) {
             getError(e);
@@ -396,11 +385,11 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
     }
 
     @Override
-    public void sendKeyboardWithHtmlTextSupport(String text, String userId, ReplyKeyboardMarkup keyboard) {
+    public void sendKeyboardWithHtmlTextSupport(String text, String userId, ReplyKeyboard replyKeyboard) {
         try {
             execute(SendMessage.builder()
                     .chatId(userId)
-                    .replyMarkup(keyboard)
+                    .replyMarkup(replyKeyboard)
                     .parseMode("HTML")
                     .text(text)
                     .build());
@@ -410,12 +399,12 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
     }
 
     @Override
-    public void sendKeyboardWithoutAnyModSupport(String text, String userId, ReplyKeyboardMarkup keyboard) {
+    public void sendKeyboardWithoutAnyModSupport(String text, String userId, ReplyKeyboard replyKeyboard) {
         try {
             execute(SendMessage.builder()
                     .chatId(userId)
                     .text(text)
-                    .replyMarkup(keyboard)
+                    .replyMarkup(replyKeyboard)
                     .build());
         } catch (TelegramApiException e) {
             getError(e);
