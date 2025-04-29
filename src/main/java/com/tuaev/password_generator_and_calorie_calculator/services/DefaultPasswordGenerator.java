@@ -9,46 +9,68 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
-public class DefaultPasswordGenerator implements PasswordGeneratorService, SendKeyboardCharactersService{
+public class DefaultPasswordGenerator implements PasswordGeneratorService, SendKeyboardCharactersService {
 
     private final QuestionsPassword[] questionsPassword = QuestionsPassword.values();
-    private final Map<String, List<Map<QuestionsPassword, List<String>>>> responsesUserOnQuestionsPassword = new HashMap<>();
+    private final Chars[] chars = Chars.values();
+    private final Map<String, Map<QuestionsPassword, List<String>>> responsesUserOnQuestionsPassword = new HashMap<>();
 
 
     @Override
-    public String getTextQuestionPasswordByIterator(int iterator){
+    public String getTextQuestionPasswordByIterator(int iterator) {
         return questionsPassword[iterator].getText();
     }
 
     @Override
-    public int getLengthQuestionsPassword(){
+    public List<Chars> getChars() {
+        return Arrays.stream(chars).toList();
+    }
+
+    @Override
+    public int getLengthQuestionsPassword() {
         return questionsPassword.length;
     }
 
     @Override
-    public void addResponseOnQuestion(String userId, String text, int iterator){
+    public boolean addResponseOnQuestion(String userId, String text, int iterator) {
         if (iterator > 0 && iterator <= questionsPassword.length) {
-            List<String> responses = new ArrayList<>();
-            responses.add(text);
-            Map<QuestionsPassword, List<String>> responseOnQuestion = new EnumMap<>(QuestionsPassword.class);
-            responseOnQuestion.put(questionsPassword[iterator - 1], responses);
-            List<Map<QuestionsPassword, List<String>>> list;
+            List<String> responses;
+            Map<QuestionsPassword, List<String>> responseOnQuestion;
             if (responsesUserOnQuestionsPassword.get(userId) == null) {
-                list = new ArrayList<>();
-                list.add(responseOnQuestion);
-                responsesUserOnQuestionsPassword.put(userId, list);
+                responses = new ArrayList<>();
+                responseOnQuestion = new EnumMap<>(QuestionsPassword.class);
+                responses.add(text);
+                responseOnQuestion.put(questionsPassword[iterator - 1], responses);
+                responsesUserOnQuestionsPassword.put(userId, responseOnQuestion);
+                return true;
             } else {
-                list = responsesUserOnQuestionsPassword.get(userId);
-                list.add(responseOnQuestion);
-                responsesUserOnQuestionsPassword.replace(userId, list);
+                responseOnQuestion = responsesUserOnQuestionsPassword.get(userId);
+                responses = responseOnQuestion.get(questionsPassword[iterator - 1]);
+                boolean isUniqueResponse = checkOnUniqueResponse(text, iterator, responseOnQuestion);
+                if (isUniqueResponse) {
+                    responses.add(text);
+                    responseOnQuestion.put(questionsPassword[iterator - 1], responses);
+                    responsesUserOnQuestionsPassword.replace(userId, responseOnQuestion);
+                    return true;
+                }
+                return false;
             }
         }
+        return false;
+    }
+
+    private boolean checkOnUniqueResponse(String text, int iterator, Map<QuestionsPassword, List<String>> responseOnQuestion) {
+        return responseOnQuestion.get(questionsPassword[iterator - 1])
+                .stream()
+                .noneMatch(response ->
+                response.equals(text));
     }
 
     @Override
-    public QuestionsPassword getQuestionPasswordByIterator(int iterator){
+    public QuestionsPassword getQuestionPasswordByIterator(int iterator) {
         return questionsPassword[iterator];
     }
 

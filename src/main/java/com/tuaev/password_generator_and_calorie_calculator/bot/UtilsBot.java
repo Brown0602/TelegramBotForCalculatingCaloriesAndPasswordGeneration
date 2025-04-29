@@ -10,9 +10,7 @@ import com.tuaev.password_generator_and_calorie_calculator.services.SendMessageS
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -55,16 +53,20 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
     @Override
     public void onUpdateReceived(Update update) {
         long start = System.currentTimeMillis();
+        String userId = null;
+        String text = null;
+        boolean isCommand = false;
         if (update.hasCallbackQuery()) {
-            return;
+            userId = String.valueOf(update.getCallbackQuery().getFrom().getId());
+            text = update.getCallbackQuery().getData();
         }
-        Message message = update.getMessage();
-        User user = message.getFrom();
-        String userId = String.valueOf(user.getId());
-        String text = message.getText();
-        boolean isCommand = message.isCommand();
+        if (update.hasMessage()) {
+            userId = String.valueOf(update.getMessage().getFrom().getId());
+            text = update.getMessage().getText();
+            isCommand = update.getMessage().isCommand();
+        }
         checkMessageOnCommandFromUser(isCommand, text, userId);
-        processingCommand(text, userId);
+        processingCommand(text, userId, update);
         long end = System.currentTimeMillis();
         String result = String.format("Выполнено за %dms", end - start);
         logger.info(result);
@@ -196,7 +198,7 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
         return iterator;
     }
 
-    public void processingCommand(String text, String userId) {
+    public void processingCommand(String text, String userId, Update update) {
         Commands state = userCommandStates.get(userId);
         int iterator = 0;
         if (state != null) {
@@ -210,6 +212,19 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
             }
         }
         if (userCommandStates.get(userId) == Commands.PASSWORD) {
+            if (update.hasCallbackQuery()) {
+                boolean isCharacter = passwordGeneratorService.getChars().stream()
+                        .anyMatch(character -> character.getInfo().equals(text));
+                if (isCharacter) {
+                    boolean isAdded = passwordGeneratorService.addResponseOnQuestion(userId, text, iterator);
+                    if (isAdded) {
+                        sendMessage("Запомнила\uD83D\uDE01", userId);
+                        return;
+                    }
+                    sendMessage("Вы уже выбрали такой вариант\uD83E\uDD14", userId);
+                    return;
+                }
+            }
             String textQuestion = null;
             QuestionsPassword questionsPassword = null;
             if (iterator < passwordGeneratorService.getLengthQuestionsPassword()) {
