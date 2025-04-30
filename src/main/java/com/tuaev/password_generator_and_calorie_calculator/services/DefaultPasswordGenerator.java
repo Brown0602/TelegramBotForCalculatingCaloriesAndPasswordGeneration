@@ -5,14 +5,11 @@ import com.tuaev.password_generator_and_calorie_calculator.enums.QuestionsPasswo
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
-public class DefaultPasswordGenerator implements PasswordGeneratorService, SendKeyboardCharactersService {
+public class DefaultPasswordGenerator implements PasswordGeneratorService {
 
     private final QuestionsPassword[] questionsPassword = QuestionsPassword.values();
     private final Chars[] chars = Chars.values();
@@ -75,10 +72,17 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService, SendK
     }
 
     @Override
-    public InlineKeyboardMarkup getInlineKeyboardMarkupCharacters() {
+    public InlineKeyboardMarkup getInlineKeyboardCharacters() {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
+        List<List<InlineKeyboardButton>> rowsInlineButtons = getInlineButtonsCharacters();
+        inlineKeyboardMarkup.setKeyboard(rowsInlineButtons);
+        return inlineKeyboardMarkup;
+    }
+
+    @Override
+    public List<List<InlineKeyboardButton>> getInlineButtonsCharacters() {
+        List<List<InlineKeyboardButton>> rowsInlineButtons = new ArrayList<>();
+        List<InlineKeyboardButton> inlineButtons = new ArrayList<>();
         InlineKeyboardButton numbers = new InlineKeyboardButton();
         numbers.setText("1\uFE0F⃣");
         numbers.setCallbackData(Chars.NUMBERS.getInfo());
@@ -91,26 +95,11 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService, SendK
         InlineKeyboardButton upperCase = new InlineKeyboardButton();
         upperCase.setText("4\uFE0F⃣");
         upperCase.setCallbackData(Chars.UPPER_CASE.getInfo());
-        inlineKeyboardButtons.add(numbers);
-        inlineKeyboardButtons.add(specialCharacters);
-        inlineKeyboardButtons.add(lowerCase);
-        inlineKeyboardButtons.add(upperCase);
-        rowsInline.add(inlineKeyboardButtons);
-        inlineKeyboardMarkup.setKeyboard(rowsInline);
-        return inlineKeyboardMarkup;
-    }
-
-    @Override
-    public KeyboardRow getKeyboardButtonsCharacters() {
-        KeyboardRow keyboardRow = new KeyboardRow();
-        KeyboardButton button1 = new KeyboardButton(Chars.NUMBERS.getInfo());
-        KeyboardButton button2 = new KeyboardButton(Chars.SPECIAL_CHARACTERS.getInfo());
-        KeyboardButton button3 = new KeyboardButton(Chars.UPPER_CASE.getInfo());
-        KeyboardButton button4 = new KeyboardButton(Chars.LOWER_CASE.getInfo());
-        keyboardRow.add(button1);
-        keyboardRow.add(button2);
-        keyboardRow.add(button3);
-        keyboardRow.add(button4);
-        return keyboardRow;
+        inlineButtons.add(numbers);
+        inlineButtons.add(specialCharacters);
+        inlineButtons.add(lowerCase);
+        inlineButtons.add(upperCase);
+        rowsInlineButtons.add(inlineButtons);
+        return rowsInlineButtons;
     }
 }

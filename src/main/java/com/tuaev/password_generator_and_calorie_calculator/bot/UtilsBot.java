@@ -218,7 +218,12 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
                 if (isCharacter) {
                     boolean isAdded = passwordGeneratorService.addResponseOnQuestion(userId, text, iterator);
                     if (isAdded) {
-                        sendMessage("Запомнила\uD83D\uDE01", userId);
+                        //InlineKeyboardMarkup generationPassword =
+                        sendMessage("""
+                                Запомнила\uD83D\uDE01
+                                Если выбрал все желаемые варианты, то нажми на кнопку "Сгенерировать пароль"
+                                """, userId);
+
                         return;
                     }
                     sendMessage("Вы уже выбрали такой вариант\uD83E\uDD14", userId);
@@ -232,7 +237,7 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
                 questionsPassword = passwordGeneratorService.getQuestionPasswordByIterator(iterator);
             }
             if (questionsPassword == QuestionsPassword.CHARACTERS) {
-                InlineKeyboardMarkup inlineKeyboardMarkup = passwordGeneratorService.getInlineKeyboardMarkupCharacters();
+                InlineKeyboardMarkup inlineKeyboardMarkup = passwordGeneratorService.getInlineKeyboardCharacters();
                 sendKeyboardWithoutAnyModSupport(textQuestion, userId, inlineKeyboardMarkup);
             }
             if (questionsPassword == QuestionsPassword.LENGTH) {
