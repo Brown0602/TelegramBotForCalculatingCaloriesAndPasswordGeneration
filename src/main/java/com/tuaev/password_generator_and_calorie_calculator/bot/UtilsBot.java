@@ -33,7 +33,7 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
     private final QuestionsCalories[] questionsCalories = QuestionsCalories.values();
     private final Commands[] commands = Commands.values();
     private final Activity[] activities = Activity.values();
-    private final Map<String, List<Map<QuestionsCalories, String>>> responsesUserOnQuestionsCalories = new HashMap<>();
+    private final Map<String, Map<QuestionsCalories, String>> responsesUserOnQuestionsCalories = new HashMap<>();
 
     public UtilsBot(ConfigurationPropertiesBot configurationPropertiesBot, PasswordGeneratorService passwordGeneratorService) {
         this.configurationPropertiesBot = configurationPropertiesBot;
@@ -281,11 +281,11 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
     }
 
     public void finalizeCalorieCalculationAndSendResult(String userId) {
-        int weight = Integer.parseInt(responsesUserOnQuestionsCalories.get(userId).get(0).get(QuestionsCalories.WEIGHT));
-        int height = Integer.parseInt(responsesUserOnQuestionsCalories.get(userId).get(1).get(QuestionsCalories.HEIGHT));
-        int age = Integer.parseInt(responsesUserOnQuestionsCalories.get(userId).get(2).get(QuestionsCalories.AGE));
-        String sex = responsesUserOnQuestionsCalories.get(userId).get(3).get(QuestionsCalories.SEX);
-        String activity = responsesUserOnQuestionsCalories.get(userId).get(4).get(QuestionsCalories.ACTIVITY);
+        int weight = Integer.parseInt(responsesUserOnQuestionsCalories.get(userId).get(QuestionsCalories.WEIGHT));
+        int height = Integer.parseInt(responsesUserOnQuestionsCalories.get(userId).get(QuestionsCalories.HEIGHT));
+        int age = Integer.parseInt(responsesUserOnQuestionsCalories.get(userId).get(QuestionsCalories.AGE));
+        String sex = responsesUserOnQuestionsCalories.get(userId).get(QuestionsCalories.SEX);
+        String activity = responsesUserOnQuestionsCalories.get(userId).get(QuestionsCalories.ACTIVITY);
         String result = String.format("""
                 С учетом введенных вами данных, ваш результат будет равен %d ккал в день для поддержания веса.
                 Для сброса веса убавьте 500 ккал, а для набора добавьте 500 ккал.
@@ -298,17 +298,15 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
 
     public void addResponseOnQuestion(String userId, String text, int iterator) {
         if (iterator > 0 && iterator <= questionsCalories.length) {
-            Map<QuestionsCalories, String> questionAndResponse = new EnumMap<>(QuestionsCalories.class);
-            questionAndResponse.put(questionsCalories[iterator - 1], text);
-            List<Map<QuestionsCalories, String>> list;
+            Map<QuestionsCalories, String> responseOnQuestion;
             if (responsesUserOnQuestionsCalories.get(userId) == null) {
-                list = new ArrayList<>();
-                list.add(questionAndResponse);
-                responsesUserOnQuestionsCalories.put(userId, list);
+                responseOnQuestion = new EnumMap<>(QuestionsCalories.class);
+                responseOnQuestion.put(questionsCalories[iterator - 1], text);
+                responsesUserOnQuestionsCalories.put(userId, responseOnQuestion);
             } else {
-                list = responsesUserOnQuestionsCalories.get(userId);
-                list.add(questionAndResponse);
-                responsesUserOnQuestionsCalories.replace(userId, list);
+                responseOnQuestion = responsesUserOnQuestionsCalories.get(userId);
+                responseOnQuestion.put(questionsCalories[iterator - 1], text);
+                responsesUserOnQuestionsCalories.replace(userId, responseOnQuestion);
             }
         }
     }
