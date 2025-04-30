@@ -218,11 +218,11 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
                 if (isCharacter) {
                     boolean isAdded = passwordGeneratorService.addResponseOnQuestion(userId, text, iterator);
                     if (isAdded) {
-                        //InlineKeyboardMarkup generationPassword =
-                        sendMessage("""
+                        InlineKeyboardMarkup generationPassword = passwordGeneratorService.getInlineKeyboardGenerationPassword();
+                        sendKeyboardWithoutAnyModSupport("""
                                 Запомнила\uD83D\uDE01
                                 Если выбрал все желаемые варианты, то нажми на кнопку "Сгенерировать пароль"
-                                """, userId);
+                                """, userId, generationPassword);
 
                         return;
                     }

@@ -72,6 +72,24 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
     }
 
     @Override
+    public InlineKeyboardMarkup getInlineKeyboardGenerationPassword(){
+        InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();
+        inlineKeyboard.setKeyboard(getRowInlineButtonForGenerationPassword());
+        return inlineKeyboard;
+    }
+
+    private List<List<InlineKeyboardButton>> getRowInlineButtonForGenerationPassword(){
+        List<List<InlineKeyboardButton>> rowInlineButton = new ArrayList<>();
+        List<InlineKeyboardButton> inlineButtons = new ArrayList<>();
+        InlineKeyboardButton generationPasswordButton = new InlineKeyboardButton();
+        generationPasswordButton.setText("Сгенерировать пароль");
+        generationPasswordButton.setCallbackData("Сгенерировать пароль");
+        inlineButtons.add(generationPasswordButton);
+        rowInlineButton.add(inlineButtons);
+        return rowInlineButton;
+    }
+
+    @Override
     public InlineKeyboardMarkup getInlineKeyboardCharacters() {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInlineButtons = getInlineButtonsCharacters();
@@ -79,8 +97,7 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
         return inlineKeyboardMarkup;
     }
 
-    @Override
-    public List<List<InlineKeyboardButton>> getInlineButtonsCharacters() {
+    private List<List<InlineKeyboardButton>> getInlineButtonsCharacters() {
         List<List<InlineKeyboardButton>> rowsInlineButtons = new ArrayList<>();
         List<InlineKeyboardButton> inlineButtons = new ArrayList<>();
         InlineKeyboardButton numbers = new InlineKeyboardButton();
