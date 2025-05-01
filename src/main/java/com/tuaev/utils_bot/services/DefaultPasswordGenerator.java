@@ -52,6 +52,24 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
     }
 
     @Override
+    public InlineKeyboardMarkup getKeyboardGenerationPassword(){
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        keyboard.setKeyboard(getButtonGenerationPassword());
+        return keyboard;
+    }
+
+    private List<List<InlineKeyboardButton>> getButtonGenerationPassword(){
+        List<List<InlineKeyboardButton>> rowsButtons = new ArrayList<>();
+        List<InlineKeyboardButton> rowButtonGenerationPassword = new ArrayList<>();
+        InlineKeyboardButton buttonGenerationPassword = new InlineKeyboardButton();
+        buttonGenerationPassword.setText(CallbackResponse.GENERATION_PASSWORD.getText());
+        buttonGenerationPassword.setCallbackData(CallbackResponse.GENERATION_PASSWORD.getText());
+        rowButtonGenerationPassword.add(buttonGenerationPassword);
+        rowsButtons.add(rowButtonGenerationPassword);
+        return rowsButtons;
+    }
+
+    @Override
     public String generationPassword(String userId) {
         Map<QuestionsPassword, List<String>> responsesOnQuestions = responsesUserOnQuestionsPassword.get(userId);
         List<String> desiredCharacters = responsesOnQuestions.get(QuestionsPassword.CHARACTERS);

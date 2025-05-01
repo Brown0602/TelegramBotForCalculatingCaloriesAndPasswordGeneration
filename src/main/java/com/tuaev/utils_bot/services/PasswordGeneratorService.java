@@ -15,6 +15,8 @@ public interface PasswordGeneratorService {
 
     InlineKeyboardMarkup getInlineKeyboardNextQuestion();
 
+    InlineKeyboardMarkup getKeyboardGenerationPassword();
+
     InlineKeyboardMarkup getInlineKeyboardCharacters();
 
     String getTextQuestionPasswordByIterator(int iterator);
