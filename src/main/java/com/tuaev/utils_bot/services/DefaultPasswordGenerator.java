@@ -52,6 +52,28 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
     }
 
     @Override
+    public String generationPassword(String userId) {
+        Map<QuestionsPassword, List<String>> responsesOnQuestions = responsesUserOnQuestionsPassword.get(userId);
+        List<String> desiredCharacters = responsesOnQuestions.get(QuestionsPassword.CHARACTERS);
+        int lengthPassword = Integer.parseInt(responsesOnQuestions.get(QuestionsPassword.LENGTH).get(0));
+        Random randomDesiredCharacters = new Random();
+        Random randomCharacter = new Random();
+        StringBuilder password = new StringBuilder();
+        for (int i = 0; i < lengthPassword; i++){
+            int r = randomDesiredCharacters.nextInt(0, desiredCharacters.size());
+            String infoAboutCharacter = desiredCharacters.get(r);
+            Optional<Chars> optional = Arrays.stream(chars).filter(c ->
+                    c.getInfo().equals(infoAboutCharacter)).findFirst();
+            if (optional.isPresent()){
+                char character = optional.get().getValue().charAt(randomCharacter.nextInt(0, optional.get().getValue().length() - 1));
+                password.append(character);
+            }
+        }
+        responsesUserOnQuestionsPassword.remove(userId);
+        return String.valueOf(password);
+    }
+
+    @Override
     public void addResponseOnQuestionAboutPassword(String userId, String text, QuestionsPassword question) {
         List<String> responses;
         Map<QuestionsPassword, List<String>> responsesOnQuestion;

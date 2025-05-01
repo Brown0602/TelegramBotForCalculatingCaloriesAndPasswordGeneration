@@ -250,6 +250,13 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
                 }
             }
             passwordGeneratorService.addResponseOnQuestionAboutPassword(userId, text, question);
+            String password = String.format("""
+                    Сгенерировала тебе пароль\uD83D\uDE0A
+                    %s
+                    """, passwordGeneratorService.generationPassword(userId));
+            sendMessage(password, userId);
+            userCommandStates.remove(userId);
+            iteratorUserById.remove(userId);
         }
     }
 

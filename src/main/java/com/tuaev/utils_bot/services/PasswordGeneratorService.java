@@ -5,6 +5,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 public interface PasswordGeneratorService {
 
+    String generationPassword(String userId);
+
     boolean isInlineButtonCharacter(String text);
 
     int getLengthListCharacters();
