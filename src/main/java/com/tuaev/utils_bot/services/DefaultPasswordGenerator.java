@@ -1,7 +1,9 @@
-package com.tuaev.password_generator_and_calorie_calculator.services;
+package com.tuaev.utils_bot.services;
 
-import com.tuaev.password_generator_and_calorie_calculator.enums.Chars;
-import com.tuaev.password_generator_and_calorie_calculator.enums.QuestionsPassword;
+import com.tuaev.utils_bot.enums.CallbackResponse;
+import com.tuaev.utils_bot.enums.Chars;
+import com.tuaev.utils_bot.enums.QuestionsPassword;
+import com.tuaev.utils_bot.exeception.NotUniqueResponseException;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -11,6 +13,7 @@ import java.util.*;
 @Service
 public class DefaultPasswordGenerator implements PasswordGeneratorService {
 
+    private final CallbackResponse[] callbackResponses = CallbackResponse.values();
     private final QuestionsPassword[] questionsPassword = QuestionsPassword.values();
     private final Chars[] chars = Chars.values();
     private final Map<String, Map<QuestionsPassword, List<String>>> responsesUserOnQuestionsPassword = new HashMap<>();
@@ -22,8 +25,25 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
     }
 
     @Override
-    public List<Chars> getChars() {
-        return Arrays.stream(chars).toList();
+    public int getLengthListCharacters() {
+        return chars.length;
+    }
+
+    @Override
+    public int getLengthListOnQuestionAboutCharactersByUserId(String userId) {
+        if (!responsesUserOnQuestionsPassword.isEmpty()) {
+            return responsesUserOnQuestionsPassword.get(userId).get(QuestionsPassword.CHARACTERS).size();
+        }
+        return 0;
+    }
+
+    private boolean isNotCallbackResponse(String text) {
+        return Arrays.stream(callbackResponses).noneMatch(response -> response.getText().equals(text));
+    }
+
+    @Override
+    public boolean isInlineButtonCharacter(String text) {
+        return Arrays.stream(chars).anyMatch(character -> character.getInfo().equals(text));
     }
 
     @Override
@@ -32,38 +52,38 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
     }
 
     @Override
-    public boolean addResponseOnQuestion(String userId, String text, int iterator) {
-        if (iterator > 0 && iterator <= questionsPassword.length) {
-            List<String> responses;
-            Map<QuestionsPassword, List<String>> responseOnQuestion;
-            if (responsesUserOnQuestionsPassword.get(userId) == null) {
+    public void addResponseOnQuestionAboutPassword(String userId, String text, QuestionsPassword question) {
+        List<String> responses;
+        Map<QuestionsPassword, List<String>> responsesOnQuestion;
+        if (responsesUserOnQuestionsPassword.get(userId) == null) {
+            responses = new ArrayList<>();
+            responsesOnQuestion = new EnumMap<>(QuestionsPassword.class);
+            responses.add(text);
+            responsesOnQuestion.put(question, responses);
+            responsesUserOnQuestionsPassword.put(userId, responsesOnQuestion);
+        } else {
+            responsesOnQuestion = responsesUserOnQuestionsPassword.get(userId);
+            if (responsesOnQuestion.get(question) == null) {
                 responses = new ArrayList<>();
-                responseOnQuestion = new EnumMap<>(QuestionsPassword.class);
                 responses.add(text);
-                responseOnQuestion.put(questionsPassword[iterator - 1], responses);
-                responsesUserOnQuestionsPassword.put(userId, responseOnQuestion);
-                return true;
-            } else {
-                responseOnQuestion = responsesUserOnQuestionsPassword.get(userId);
-                responses = responseOnQuestion.get(questionsPassword[iterator - 1]);
-                boolean isUniqueResponse = checkOnUniqueResponse(text, iterator, responseOnQuestion);
-                if (isUniqueResponse) {
-                    responses.add(text);
-                    responseOnQuestion.put(questionsPassword[iterator - 1], responses);
-                    responsesUserOnQuestionsPassword.replace(userId, responseOnQuestion);
-                    return true;
-                }
-                return false;
+                responsesOnQuestion.put(question, responses);
+                return;
             }
+            if (!checkOnUniqueResponse(text, question, responsesOnQuestion)) {
+                throw new NotUniqueResponseException("Вы уже выбрали этот вариант\uD83E\uDD14");
+            }
+            responses = responsesOnQuestion.get(question);
+            responses.add(text);
+            responsesOnQuestion.put(question, responses);
+            responsesUserOnQuestionsPassword.replace(userId, responsesOnQuestion);
         }
-        return false;
     }
 
-    private boolean checkOnUniqueResponse(String text, int iterator, Map<QuestionsPassword, List<String>> responseOnQuestion) {
-        return responseOnQuestion.get(questionsPassword[iterator - 1])
+    private boolean checkOnUniqueResponse(String text, QuestionsPassword question, Map<QuestionsPassword, List<String>> responseOnQuestion) {
+        return responseOnQuestion.get(question)
                 .stream()
                 .noneMatch(response ->
-                response.equals(text));
+                        response.equals(text));
     }
 
     @Override
@@ -72,19 +92,19 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
     }
 
     @Override
-    public InlineKeyboardMarkup getInlineKeyboardGenerationPassword(){
+    public InlineKeyboardMarkup getInlineKeyboardNextQuestion() {
         InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();
-        inlineKeyboard.setKeyboard(getRowInlineButtonForGenerationPassword());
+        inlineKeyboard.setKeyboard(getRowInlineButtonForNextQuestion());
         return inlineKeyboard;
     }
 
-    private List<List<InlineKeyboardButton>> getRowInlineButtonForGenerationPassword(){
+    private List<List<InlineKeyboardButton>> getRowInlineButtonForNextQuestion() {
         List<List<InlineKeyboardButton>> rowInlineButton = new ArrayList<>();
         List<InlineKeyboardButton> inlineButtons = new ArrayList<>();
-        InlineKeyboardButton generationPasswordButton = new InlineKeyboardButton();
-        generationPasswordButton.setText("Сгенерировать пароль");
-        generationPasswordButton.setCallbackData("Сгенерировать пароль");
-        inlineButtons.add(generationPasswordButton);
+        InlineKeyboardButton nextQuestion = new InlineKeyboardButton();
+        nextQuestion.setText(CallbackResponse.NEXT_QUESTION.getText());
+        nextQuestion.setCallbackData(CallbackResponse.NEXT_QUESTION.getText());
+        inlineButtons.add(nextQuestion);
         rowInlineButton.add(inlineButtons);
         return rowInlineButton;
     }

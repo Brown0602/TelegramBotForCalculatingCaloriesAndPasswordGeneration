@@ -1,7 +1,7 @@
-package com.tuaev.password_generator_and_calorie_calculator.bot;
+package com.tuaev.utils_bot.bot;
 
-import com.tuaev.password_generator_and_calorie_calculator.configuration_properties_bot.ConfigurationPropertiesBot;
-import com.tuaev.password_generator_and_calorie_calculator.enums.Commands;
+import com.tuaev.utils_bot.configuration_properties_bot.ConfigurationPropertiesBot;
+import com.tuaev.utils_bot.enums.Commands;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;

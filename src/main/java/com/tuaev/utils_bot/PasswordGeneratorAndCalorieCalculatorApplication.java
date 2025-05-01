@@ -1,4 +1,4 @@
-package com.tuaev.password_generator_and_calorie_calculator;
+package com.tuaev.utils_bot;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,12 +1,13 @@
-package com.tuaev.password_generator_and_calorie_calculator.bot;
+package com.tuaev.utils_bot.bot;
 
-import com.tuaev.password_generator_and_calorie_calculator.configuration_properties_bot.ConfigurationPropertiesBot;
-import com.tuaev.password_generator_and_calorie_calculator.enums.*;
-import com.tuaev.password_generator_and_calorie_calculator.exeception.NotValidCommandException;
-import com.tuaev.password_generator_and_calorie_calculator.exeception.NotValidDataException;
-import com.tuaev.password_generator_and_calorie_calculator.services.IteratorService;
-import com.tuaev.password_generator_and_calorie_calculator.services.PasswordGeneratorService;
-import com.tuaev.password_generator_and_calorie_calculator.services.SendMessageService;
+import com.tuaev.utils_bot.configuration_properties_bot.ConfigurationPropertiesBot;
+import com.tuaev.utils_bot.enums.*;
+import com.tuaev.utils_bot.exeception.NotUniqueResponseException;
+import com.tuaev.utils_bot.exeception.NotValidCommandException;
+import com.tuaev.utils_bot.exeception.NotValidDataException;
+import com.tuaev.utils_bot.services.IteratorService;
+import com.tuaev.utils_bot.services.PasswordGeneratorService;
+import com.tuaev.utils_bot.services.SendMessageService;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -212,40 +213,43 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
             }
         }
         if (userCommandStates.get(userId) == Commands.PASSWORD) {
-            if (update.hasCallbackQuery()) {
-                boolean isCharacter = passwordGeneratorService.getChars().stream()
-                        .anyMatch(character -> character.getInfo().equals(text));
-                if (isCharacter) {
-                    boolean isAdded = passwordGeneratorService.addResponseOnQuestion(userId, text, iterator);
-                    if (isAdded) {
-                        InlineKeyboardMarkup generationPassword = passwordGeneratorService.getInlineKeyboardGenerationPassword();
-                        sendKeyboardWithoutAnyModSupport("""
-                                Запомнила\uD83D\uDE01
-                                Если выбрал все желаемые варианты, то нажми на кнопку "Сгенерировать пароль"
-                                """, userId, generationPassword);
-
-                        return;
-                    }
-                    sendMessage("Вы уже выбрали такой вариант\uD83E\uDD14", userId);
+            String textQuestion;
+            QuestionsPassword question = null;
+            boolean isCallbackQuery = update.hasCallbackQuery();
+            if (iterator < passwordGeneratorService.getLengthQuestionsPassword()) {
+                if (isCallbackQuery && update.getCallbackQuery().getData().equals(CallbackResponse.NEXT_QUESTION.getText())){
+                    iterator = increment(iterator);
+                    replaceIteratorByUserId(userId, iterator);
+                }
+                textQuestion = passwordGeneratorService.getTextQuestionPasswordByIterator(iterator);
+                question = passwordGeneratorService.getQuestionPasswordByIterator(iterator);
+                if (!isCallbackQuery && question == QuestionsPassword.CHARACTERS) {
+                    InlineKeyboardMarkup inlineKeyboardMarkup = passwordGeneratorService.getInlineKeyboardCharacters();
+                    sendKeyboardWithoutAnyModSupport(textQuestion, userId, inlineKeyboardMarkup);
+                    return;
+                }
+                if (isCallbackQuery && question == QuestionsPassword.LENGTH) {
+                    sendMessage(textQuestion, userId);
                     return;
                 }
             }
-            String textQuestion = null;
-            QuestionsPassword questionsPassword = null;
-            if (iterator < passwordGeneratorService.getLengthQuestionsPassword()) {
-                textQuestion = passwordGeneratorService.getTextQuestionPasswordByIterator(iterator);
-                questionsPassword = passwordGeneratorService.getQuestionPasswordByIterator(iterator);
+            if (isCallbackQuery) {
+                if (passwordGeneratorService.isInlineButtonCharacter(text)) {
+                    try {
+                        passwordGeneratorService.addResponseOnQuestionAboutPassword(userId, text, question);
+                        InlineKeyboardMarkup nextQuestion = passwordGeneratorService.getInlineKeyboardNextQuestion();
+                        sendKeyboardWithoutAnyModSupport("""
+                                Запомнила\uD83D\uDE01
+                                Если выбрал желаемые варианты, то нажми на кнопку "Следующий вопрос"
+                                """, userId, nextQuestion);
+                        return;
+                    } catch (NotUniqueResponseException e) {
+                        sendMessage(e.getMessage(), userId);
+                        return;
+                    }
+                }
             }
-            if (questionsPassword == QuestionsPassword.CHARACTERS) {
-                InlineKeyboardMarkup inlineKeyboardMarkup = passwordGeneratorService.getInlineKeyboardCharacters();
-                sendKeyboardWithoutAnyModSupport(textQuestion, userId, inlineKeyboardMarkup);
-            }
-            if (questionsPassword == QuestionsPassword.LENGTH) {
-                sendMessage(textQuestion, userId);
-            }
-            passwordGeneratorService.addResponseOnQuestion(userId, text, iterator);
-            iterator = increment(iterator);
-            replaceIteratorByUserId(userId, iterator);
+            passwordGeneratorService.addResponseOnQuestionAboutPassword(userId, text, question);
         }
     }
 

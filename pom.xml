@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.tuaev</groupId>
-	<artifactId>password_generator_and_calorie_calculator</artifactId>
+	<artifactId>utils_bot</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>password_generator_and_calorie_calculator</name>
 	<description>Demo project for Spring Boot</description>

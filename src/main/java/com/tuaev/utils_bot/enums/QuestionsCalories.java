@@ -1,4 +1,4 @@
-package com.tuaev.password_generator_and_calorie_calculator.enums;
+package com.tuaev.utils_bot.enums;
 
 public enum QuestionsCalories {
     WEIGHT("Какой у вас вес?"),

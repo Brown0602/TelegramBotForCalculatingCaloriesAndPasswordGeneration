@@ -1,6 +1,6 @@
-package com.tuaev.password_generator_and_calorie_calculator.config_app;
+package com.tuaev.utils_bot.config_app;
 
-import com.tuaev.password_generator_and_calorie_calculator.bot.UtilsBot;
+import com.tuaev.utils_bot.bot.UtilsBot;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.telegram.telegrambots.meta.TelegramBotsApi;

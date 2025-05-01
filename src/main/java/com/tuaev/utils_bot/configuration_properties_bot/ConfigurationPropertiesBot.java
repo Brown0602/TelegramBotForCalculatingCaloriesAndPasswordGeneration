@@ -1,4 +1,4 @@
-package com.tuaev.password_generator_and_calorie_calculator.configuration_properties_bot;
+package com.tuaev.utils_bot.configuration_properties_bot;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,4 @@
-package com.tuaev.password_generator_and_calorie_calculator.services;
+package com.tuaev.utils_bot.services;
 
 public interface IteratorService {
     int increment(int iterator);

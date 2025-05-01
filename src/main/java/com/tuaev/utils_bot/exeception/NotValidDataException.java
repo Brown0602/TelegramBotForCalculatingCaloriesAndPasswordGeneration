@@ -1,4 +1,4 @@
-package com.tuaev.password_generator_and_calorie_calculator.exeception;
+package com.tuaev.utils_bot.exeception;
 
 public class NotValidDataException extends RuntimeException{
 
