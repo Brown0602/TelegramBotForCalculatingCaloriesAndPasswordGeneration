@@ -217,7 +217,7 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
             QuestionsPassword question = null;
             boolean isCallbackQuery = update.hasCallbackQuery();
             if (iterator < passwordGeneratorService.getLengthQuestionsPassword()) {
-                if (isCallbackQuery && update.getCallbackQuery().getData().equals(CallbackResponse.NEXT_QUESTION.getText())){
+                if (isCallbackQuery && text.equals(CallbackResponse.NEXT_QUESTION.getText())) {
                     iterator = increment(iterator);
                     replaceIteratorByUserId(userId, iterator);
                 }
@@ -228,7 +228,7 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
                     sendKeyboardWithoutAnyModSupport(textQuestion, userId, inlineKeyboardMarkup);
                     return;
                 }
-                if (isCallbackQuery && question == QuestionsPassword.LENGTH) {
+                if (isCallbackQuery && text.equals(CallbackResponse.NEXT_QUESTION.getText()) && question == QuestionsPassword.LENGTH) {
                     sendMessage(textQuestion, userId);
                     return;
                 }
@@ -248,6 +248,17 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
                         return;
                     }
                 }
+                if (passwordGeneratorService.isCallbackResponse(text)) {
+                    if (text.equals(CallbackResponse.GENERATION_PASSWORD.getText())) {
+                        String password = String.format("""
+                                Сгенерировала тебе пароль\uD83D\uDE0A
+                                %s
+                                Если данный пароль тебе не понравился, то нажми на кнопку "%s"
+                                """, passwordGeneratorService.generationPassword(userId), CallbackResponse.GENERATION_PASSWORD.getText());
+                        sendKeyboardWithoutAnyModSupport(password, userId, passwordGeneratorService.getKeyboardGenerationPassword());
+                        return;
+                    }
+                }
             }
             passwordGeneratorService.addResponseOnQuestionAboutPassword(userId, text, question);
             String password = String.format("""
@@ -256,8 +267,8 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
                     Если данный пароль тебе не понравился, то нажми на кнопку "%s"
                     """, passwordGeneratorService.generationPassword(userId), CallbackResponse.GENERATION_PASSWORD.getText());
             sendKeyboardWithoutAnyModSupport(password, userId, passwordGeneratorService.getKeyboardGenerationPassword());
-            userCommandStates.remove(userId);
-            iteratorUserById.remove(userId);
+            //userCommandStates.remove(userId);
+            //iteratorUserById.remove(userId);
         }
     }
 

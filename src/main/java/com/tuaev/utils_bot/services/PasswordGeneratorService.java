@@ -7,6 +7,8 @@ public interface PasswordGeneratorService {
 
     String generationPassword(String userId);
 
+    boolean isCallbackResponse(String text);
+
     boolean isInlineButtonCharacter(String text);
 
     int getLengthListCharacters();

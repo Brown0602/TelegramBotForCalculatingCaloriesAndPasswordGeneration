@@ -70,6 +70,12 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
     }
 
     @Override
+    public boolean isCallbackResponse(String text){
+        return Arrays.stream(callbackResponses).anyMatch(callbackResponse ->
+                callbackResponse.getText().equals(text));
+    }
+
+    @Override
     public String generationPassword(String userId) {
         Map<QuestionsPassword, List<String>> responsesOnQuestions = responsesUserOnQuestionsPassword.get(userId);
         List<String> desiredCharacters = responsesOnQuestions.get(QuestionsPassword.CHARACTERS);
@@ -87,7 +93,7 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
                 password.append(character);
             }
         }
-        responsesUserOnQuestionsPassword.remove(userId);
+        //responsesUserOnQuestionsPassword.remove(userId);
         return String.valueOf(password);
     }
 
