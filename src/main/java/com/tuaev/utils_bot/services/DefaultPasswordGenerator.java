@@ -25,23 +25,6 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
     }
 
     @Override
-    public int getLengthListCharacters() {
-        return chars.length;
-    }
-
-    @Override
-    public int getLengthListOnQuestionAboutCharactersByUserId(String userId) {
-        if (!responsesUserOnQuestionsPassword.isEmpty()) {
-            return responsesUserOnQuestionsPassword.get(userId).get(QuestionsPassword.CHARACTERS).size();
-        }
-        return 0;
-    }
-
-    private boolean isNotCallbackResponse(String text) {
-        return Arrays.stream(callbackResponses).noneMatch(response -> response.getText().equals(text));
-    }
-
-    @Override
     public boolean isInlineButtonCharacter(String text) {
         return Arrays.stream(chars).anyMatch(character -> character.getInfo().equals(text));
     }

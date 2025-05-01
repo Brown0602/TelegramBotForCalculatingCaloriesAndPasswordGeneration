@@ -11,10 +11,6 @@ public interface PasswordGeneratorService {
 
     boolean isInlineButtonCharacter(String text);
 
-    int getLengthListCharacters();
-
-    int getLengthListOnQuestionAboutCharactersByUserId(String userId);
-
     InlineKeyboardMarkup getInlineKeyboardNextQuestion();
 
     InlineKeyboardMarkup getKeyboardGenerationPassword();
