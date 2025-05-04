@@ -4,6 +4,7 @@ import com.tuaev.utils_bot.enums.CallbackResponse;
 import com.tuaev.utils_bot.enums.Chars;
 import com.tuaev.utils_bot.enums.QuestionsPassword;
 import com.tuaev.utils_bot.exeception.NotUniqueResponseException;
+import com.tuaev.utils_bot.exeception.NotValidDataPasswordGeneratorException;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -91,6 +92,11 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
             responsesOnQuestion.put(question, responses);
             responsesUserOnQuestionsPassword.put(userId, responsesOnQuestion);
         } else {
+            if (question == QuestionsPassword.LENGTH) {
+                checkOnIntegerNumbers(text);
+                int lengthPassword = Integer.parseInt(text);
+                checkOnLengthPassword(lengthPassword);
+            }
             responsesOnQuestion = responsesUserOnQuestionsPassword.get(userId);
             if (responsesOnQuestion.get(question) == null) {
                 responses = new ArrayList<>();
@@ -105,6 +111,18 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
             responses.add(text);
             responsesOnQuestion.put(question, responses);
             responsesUserOnQuestionsPassword.replace(userId, responsesOnQuestion);
+        }
+    }
+
+    private void checkOnLengthPassword(int lengthPassword) {
+        if (lengthPassword < 8 || lengthPassword > 16){
+            throw new NotValidDataPasswordGeneratorException("Неверные данные");
+        }
+    }
+
+    private void checkOnIntegerNumbers(String text) {
+        if (!text.matches("\\d+")) {
+            throw new NotValidDataPasswordGeneratorException("Неверные данные");
         }
     }
 

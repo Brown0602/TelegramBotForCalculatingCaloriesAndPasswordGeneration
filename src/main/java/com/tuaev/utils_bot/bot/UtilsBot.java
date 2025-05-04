@@ -5,6 +5,7 @@ import com.tuaev.utils_bot.enums.*;
 import com.tuaev.utils_bot.exeception.NotUniqueResponseException;
 import com.tuaev.utils_bot.exeception.NotValidCommandException;
 import com.tuaev.utils_bot.exeception.NotValidDataException;
+import com.tuaev.utils_bot.exeception.NotValidDataPasswordGeneratorException;
 import com.tuaev.utils_bot.services.IteratorService;
 import com.tuaev.utils_bot.services.PasswordGeneratorService;
 import com.tuaev.utils_bot.services.SendMessageService;
@@ -260,7 +261,13 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
                     }
                 }
             }
-            passwordGeneratorService.addResponseOnQuestionAboutPassword(userId, text, question);
+            try {
+                passwordGeneratorService.addResponseOnQuestionAboutPassword(userId, text, question);
+            }catch (NotValidDataPasswordGeneratorException e){
+                sendMessage(e.getMessage(), userId);
+                getError(e);
+                return;
+            }
             String password = String.format("""
                     Сгенерировала тебе пароль\uD83D\uDE0A
                     %s
