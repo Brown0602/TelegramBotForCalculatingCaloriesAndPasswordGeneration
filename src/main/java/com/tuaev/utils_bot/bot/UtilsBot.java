@@ -57,7 +57,6 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
         long start = System.currentTimeMillis();
         String userId = null;
         String text = null;
-        boolean isCommand = false;
         if (update.hasCallbackQuery()) {
             userId = String.valueOf(update.getCallbackQuery().getFrom().getId());
             text = update.getCallbackQuery().getData();
@@ -65,40 +64,46 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
         if (update.hasMessage()) {
             userId = String.valueOf(update.getMessage().getFrom().getId());
             text = update.getMessage().getText();
-            isCommand = update.getMessage().isCommand();
         }
-        checkMessageOnCommandFromUser(isCommand, text, userId);
+        checkMessageOnCommandFromUser(text, userId);
         processingCommand(text, userId, update);
         long end = System.currentTimeMillis();
         String result = String.format("Выполнено за %dms", end - start);
         logger.info(result);
     }
 
-    public void checkMessageOnCommandFromUser(boolean isCommand, String text, String userId) {
-        if (userCommandStates.get(userId) != null) {
-            return;
-        }
-        if (Arrays.stream(commands).noneMatch(c -> c.getText().equals(text))) {
+    public void checkMessageOnCommandFromUser(String text, String userId) {
+        boolean isCommand = Arrays.stream(commands).anyMatch(commands1 -> commands1.getText().equals(text));
+        if (userCommandStates.get(userId) == null && !isCommand) {
             try {
-                throw new NotValidCommandException("Для взаимодейсвия с ботом воспользуйтесь командным меню");
-            } catch (NotValidCommandException e) {
+                throw new NotValidCommandException("Для взаимодействия с ботов воспользуйтесь командным меню");
+            }catch (NotValidCommandException e){
                 sendMessage(e.getMessage(), userId);
             }
-        }
-        if (isCommand && text.equals(Commands.START.getText())) {
-            sendMessage(Commands.START.getInfo(), userId);
             return;
         }
-        if (isCommand && text.equals(Commands.CALORIES.getText())) {
-            userCommandStates.put(userId, Commands.CALORIES);
-            iteratorUserById.put(userId, 0);
-            sendMessageWithRemovedKeyboard(Commands.CALORIES.getInfo(), userId, deleteKeyboard());
-            return;
-        }
-        if (isCommand && text.equals(Commands.PASSWORD.getText())) {
-            userCommandStates.put(userId, Commands.PASSWORD);
-            iteratorUserById.put(userId, 0);
-            sendMessageWithRemovedKeyboard(Commands.PASSWORD.getInfo(), userId, deleteKeyboard());
+        if (isCommand) {
+            Optional<Commands> optionalCommands = Arrays.stream(commands)
+                    .filter(command -> command.getText().equals(text))
+                    .findFirst();
+            if (optionalCommands.isPresent()) {
+                Commands command = optionalCommands.get();
+                switch (command) {
+                    case START -> {
+                        sendMessage(Commands.START.getInfo(), userId);
+                    }
+                    case CALORIES -> {
+                        userCommandStates.put(userId, Commands.CALORIES);
+                        iteratorUserById.put(userId, 0);
+                        sendMessageWithRemovedKeyboard(Commands.CALORIES.getInfo(), userId, deleteKeyboard());
+                    }
+                    case PASSWORD -> {
+                        userCommandStates.put(userId, Commands.PASSWORD);
+                        iteratorUserById.put(userId, 0);
+                        sendMessageWithRemovedKeyboard(Commands.PASSWORD.getInfo(), userId, deleteKeyboard());
+                    }
+                }
+            }
         }
     }
 
@@ -263,7 +268,7 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
             }
             try {
                 passwordGeneratorService.addResponseOnQuestionAboutPassword(userId, text, question);
-            }catch (NotValidDataPasswordGeneratorException e){
+            } catch (NotValidDataPasswordGeneratorException e) {
                 sendMessage(e.getMessage(), userId);
                 getError(e);
                 return;
