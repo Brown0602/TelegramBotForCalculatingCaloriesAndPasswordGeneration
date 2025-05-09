@@ -7,6 +7,7 @@ import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Configuration
@@ -19,10 +20,10 @@ public class Config {
         try {
             TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
             telegramBotsApi.registerBot(bot);
-            logger.info("\nБот успешно зарегистрирован");
+            logger.log(Level.INFO, () -> "Бот успешно зарегистирован");
             return telegramBotsApi;
         }catch (TelegramApiException e){
-            logger.info("Произошла ошибка: " + e.getMessage());
+            logger.log(Level.INFO, "Произошла ошибка: %s", e.getMessage());
         }
         return null;
     }

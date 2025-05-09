@@ -76,7 +76,6 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
                 password.append(character);
             }
         }
-        //responsesUserOnQuestionsPassword.remove(userId);
         return String.valueOf(password);
     }
 
