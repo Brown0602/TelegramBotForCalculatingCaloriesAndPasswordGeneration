@@ -5,6 +5,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 public interface PasswordGeneratorService {
 
+    void deleteResponsesUserAboutQuestionsAboutPassword(String userId);
+
     String generationPassword(String userId);
 
     boolean isCallbackResponse(String text);

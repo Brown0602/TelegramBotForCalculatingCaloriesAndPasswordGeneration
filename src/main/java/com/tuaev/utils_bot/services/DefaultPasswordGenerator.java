@@ -19,7 +19,6 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
     private final Chars[] chars = Chars.values();
     private final Map<String, Map<QuestionsPassword, List<String>>> responsesUserOnQuestionsPassword = new HashMap<>();
 
-
     @Override
     public String getTextQuestionPasswordByIterator(int iterator) {
         return questionsPassword[iterator].getText();
@@ -79,6 +78,11 @@ public class DefaultPasswordGenerator implements PasswordGeneratorService {
         }
         //responsesUserOnQuestionsPassword.remove(userId);
         return String.valueOf(password);
+    }
+
+    @Override
+    public void deleteResponsesUserAboutQuestionsAboutPassword(String userId){
+        responsesUserOnQuestionsPassword.remove(userId);
     }
 
     @Override

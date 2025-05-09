@@ -9,6 +9,7 @@ import com.tuaev.utils_bot.exeception.NotValidDataPasswordGeneratorException;
 import com.tuaev.utils_bot.services.IteratorService;
 import com.tuaev.utils_bot.services.PasswordGeneratorService;
 import com.tuaev.utils_bot.services.SendMessageService;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -21,17 +22,24 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Component
 public class UtilsBot extends TelegramLongPollingBot implements SendMessageService, IteratorService {
 
     private final Logger logger = Logger.getLogger(UtilsBot.class.getName());
+
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    private final Map<String, LocalDateTime> dateLastMessageUser = new ConcurrentHashMap<>();
     private final ConfigurationPropertiesBot configurationPropertiesBot;
     private final PasswordGeneratorService passwordGeneratorService;
-    private final Map<String, Commands> userCommandStates = new HashMap<>();
-    private final Map<String, Integer> iteratorUserById = new HashMap<>();
+    private final Map<String, Commands> userCommandStates = new ConcurrentHashMap<>();
+    private final Map<String, Integer> iteratorUserById = new ConcurrentHashMap<>();
     private final QuestionsCalories[] questionsCalories = QuestionsCalories.values();
     private final Commands[] commands = Commands.values();
     private final Activity[] activities = Activity.values();
@@ -40,6 +48,44 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
     public UtilsBot(ConfigurationPropertiesBot configurationPropertiesBot, PasswordGeneratorService passwordGeneratorService) {
         this.configurationPropertiesBot = configurationPropertiesBot;
         this.passwordGeneratorService = passwordGeneratorService;
+    }
+
+    @PostConstruct
+    public void processingActivityUserWithBot(){
+        try {
+            checkActivityUser();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void checkActivityUser() throws ExecutionException, InterruptedException {
+        final Runnable checkUser = new Runnable() {
+            @Override
+            public void run() {
+                for (Map.Entry<String, LocalDateTime> entry : dateLastMessageUser.entrySet()) {
+                    String userId = entry.getKey();
+                    String msg;
+                    LocalDateTime timeLastInteractions = entry.getValue();
+                    LocalDateTime now = LocalDateTime.now();
+                    Duration duration = Duration.between(timeLastInteractions, now);
+                    long seconds = duration.toSeconds();
+                    msg = String.format("Пользователь с id: %s был активен %d секунд назад", userId, seconds);
+                    logger.log(Level.INFO, msg);
+                    if (seconds > 180) {
+                        dateLastMessageUser.remove(userId);
+                        userCommandStates.remove(userId);
+                        iteratorUserById.remove(userId);
+                        msg = String.format("Пользователь с id %s удален из кэша\nОн был неактивен более %d секунд", userId, seconds);
+                        logger.log(Level.INFO, msg);
+                        return;
+                    }
+                    return;
+                }
+                logger.log(Level.INFO, () -> "Нет активных пользователей");
+            }
+        };
+        scheduledExecutorService.scheduleWithFixedDelay(checkUser, 60, 60, TimeUnit.SECONDS);
     }
 
     @Override
@@ -57,6 +103,7 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
         long start = System.currentTimeMillis();
         String userId = null;
         String text = null;
+        LocalDateTime timeLastInteractions = LocalDateTime.now();
         if (update.hasCallbackQuery()) {
             userId = String.valueOf(update.getCallbackQuery().getFrom().getId());
             text = update.getCallbackQuery().getData();
@@ -65,6 +112,7 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
             userId = String.valueOf(update.getMessage().getFrom().getId());
             text = update.getMessage().getText();
         }
+        dateLastMessageUser.put(userId, timeLastInteractions);
         checkMessageOnCommandFromUser(text, userId);
         processingCommand(text, userId, update);
         long end = System.currentTimeMillis();
@@ -73,23 +121,25 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
     }
 
     public void checkMessageOnCommandFromUser(String text, String userId) {
-        boolean isCommand = Arrays.stream(commands).anyMatch(commands1 -> commands1.getText().equals(text));
+        boolean isCommand = Arrays.stream(commands).anyMatch(command -> command.getText().equals(text));
         if (userCommandStates.get(userId) == null && !isCommand) {
             try {
                 throw new NotValidCommandException("Для взаимодействия с ботов воспользуйтесь командным меню");
-            }catch (NotValidCommandException e){
+            } catch (NotValidCommandException e) {
                 sendMessage(e.getMessage(), userId);
             }
             return;
         }
         if (isCommand) {
-            Optional<Commands> optionalCommands = Arrays.stream(commands)
+            Optional<Commands> optionalCommand = Arrays.stream(commands)
                     .filter(command -> command.getText().equals(text))
                     .findFirst();
-            if (optionalCommands.isPresent()) {
-                Commands command = optionalCommands.get();
+            if (optionalCommand.isPresent()) {
+                Commands command = optionalCommand.get();
                 switch (command) {
                     case START -> {
+                        userCommandStates.remove(userId);
+                        iteratorUserById.remove(userId);
                         sendMessage(Commands.START.getInfo(), userId);
                     }
                     case CALORIES -> {
@@ -100,6 +150,7 @@ public class UtilsBot extends TelegramLongPollingBot implements SendMessageServi
                     case PASSWORD -> {
                         userCommandStates.put(userId, Commands.PASSWORD);
                         iteratorUserById.put(userId, 0);
+                        passwordGeneratorService.deleteResponsesUserAboutQuestionsAboutPassword(userId);
                         sendMessageWithRemovedKeyboard(Commands.PASSWORD.getInfo(), userId, deleteKeyboard());
                     }
                 }
