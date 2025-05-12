@@ -14,31 +14,31 @@ import java.util.Map;
 
 class PasswordGeneratorAndCalorieCalculatorBotTest {
 
-    @Mock
-    private Message message;
-    @Mock
-    private ConfigurationPropertiesBot configurationPropertiesBot;
-    @Mock
-    private ReplyKeyboardRemove keyboard;
-    @InjectMocks
-    private UtilsBot bot;
-    private final Map<String, Commands> userCommandStates = new HashMap<>();
-    private final Map<String, Integer> iteratorUserById = new HashMap<>();
-    private String userId = "1";
-
+//    @Mock
+//    private Message message;
+//    @Mock
+//    private ConfigurationPropertiesBot configurationPropertiesBot;
+//    @Mock
+//    private ReplyKeyboardRemove keyboard;
+//    @InjectMocks
+//    private UtilsBot bot;
+//    private final Map<String, Commands> userCommandStates = new HashMap<>();
+//    private final Map<String, Integer> iteratorUserById = new HashMap<>();
+//    private String userId = "1";
+//
 //    @BeforeEach
 //    void setUp(){
 //        MockitoAnnotations.openMocks(this);
 //        bot = new UtilsBot(configurationPropertiesBot);
 //    }
-
-    @Test
-    void checkMessageOnCommand_userInState_returnsTrue(){
-        //Mockito.when(bot.sendMessage(Mockito.anyString(), Mockito.anyString()));
-        Mockito.when(message.isCommand()).thenReturn(true);
-        Mockito.when(message.getText()).thenReturn(Commands.CALORIES.getText());
-        userCommandStates.put(userId, Commands.CALORIES);
-        //boolean result = bot.checkMessageOnCommandFromUser(message, userId);
-        //Assertions.assertTrue(result);
-    }
+//
+//    @Test
+//    void checkMessageOnCommand_userInState_returnsTrue(){
+//        //Mockito.when(bot.sendMessage(Mockito.anyString(), Mockito.anyString()));
+//        Mockito.when(message.isCommand()).thenReturn(true);
+//        Mockito.when(message.getText()).thenReturn(Commands.CALORIES.getText());
+//        userCommandStates.put(userId, Commands.CALORIES);
+//        boolean result = bot.checkMessageOnCommandFromUser(message, userId);
+//        Assertions.assertTrue(result);
+//    }
 }
